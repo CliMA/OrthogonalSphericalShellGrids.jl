@@ -72,9 +72,11 @@ end
         xnum[i, 2] = xnum[i, 1] - Δx
         ynum[i, 2] = ynum[i, 1] - Δx * tan(h)
         for n in 3:N
+            # Great circles
             func(x) = xnum[i, n-1]^2 + ynum[i, n-1]^2 - ynum[i, n-1] * (f_interpolator(x) + g_interpolator(x)) + f_interpolator(x) * g_interpolator(x)
             jnum[i, n-1] = secant_root_find(Jeq, Jeq+1, func)
             xnum[i, n]   = xnum[i, n-1] - Δx
+            # Adams-Bashforth-2 integrator to find the perpendicular to the circle
             ynum[i, n]   = ynum[i, n-1] - Δx * (1.5 * (2ynum[i, n-1] - f_interpolator(jnum[i, n-1]) - g_interpolator(jnum[i, n-1])) / (2 * xnum[i, n-1]) - 
                                                 0.5 * (2ynum[i, n-2] - f_interpolator(jnum[i, n-2]) - g_interpolator(jnum[i, n-1])) / (2 * xnum[i, n-2]))
         end
@@ -99,17 +101,17 @@ end
 @inline quadratic_f_curve(φ) =   equator_fcurve(φ) + stretching_function(φ)
 @inline quadratic_g_curve(φ) = - equator_fcurve(φ) + stretching_function(φ)
 
-# Only for Domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ. 
-# For all the rest we can use a rotated `LatitudeLongitudeGrid` without warping
-function WarpedLatitudeLongitudeGrid(arch = CPU(); 
+# For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
+# φ has to reach the north pole.
+# For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
+function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
                                      size, 
                                      southermost_latitude = -75, 
                                      halo        = (4, 4, 4), 
                                      radius      = R_Earth, 
                                      z           = (0, 1),
                                      f_curve     = quadratic_f_curve,
-                                     g_curve     = quadratic_g_curve,
-                                     top_index   = 20)
+                                     g_curve     = quadratic_g_curve)
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
@@ -117,8 +119,9 @@ function WarpedLatitudeLongitudeGrid(arch = CPU();
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
-    Lφ, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(Float64, Bounded(),  Nφ, Hφ, latitude,  :φ, CPU())
-    Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(Float64, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
+    Lφ, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT, Bounded(),  Nφ, Hφ, latitude,  :φ, CPU())
+    Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
+    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z,         :z, CPU())
 
     λF = zeros(Nλ+1, Nφ+1)
     φF = zeros(Nλ+1, Nφ+1)
@@ -142,6 +145,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU();
     xt = zeros(Nλ+1, Nφ+1)
     yt = zeros(Nλ+1, Nφ+1)
 
+    # Shif pole upwards
     for j in 1:Nφ+1
         fⱼ[j] = f_curve(φᵃᶠᵃ[j])
         gⱼ[j] = g_curve(φᵃᶠᵃ[j]) 
@@ -189,25 +193,18 @@ function WarpedLatitudeLongitudeGrid(arch = CPU();
         λF[i+Nλ÷2, :] .+= 90
     end 
 
-    # Remove the top of the grid
-    λF = λF[1:end-1, 1:end-top_index]
-    φF = φF[1:end-1, 1:end-top_index]
+    # Remove the top of the grid for now 10, then figure out a way
+    # to give a choice for the last great circle size
+    λF = λF[1:end-1, 1:end-10]
+    φF = φF[1:end-1, 1:end-10]
 
     λF = circshift(λF, (1, 0))
     φF = circshift(φF, (1, 0))
 
     Nx = length(λF[:, 1])
     Ny = length(λF[:, 2]) - 1
-    
-    Zgrid = RectilinearGrid(; size = Nz, halo = Hz, topology = (Flat, Flat, Bounded), z)
-    
-    # z-direction from the rectilinear grid
-    zᵃᵃᶠ  = Zgrid.zᵃᵃᶠ
-    zᵃᵃᶜ  = Zgrid.zᵃᵃᶜ
-    Δzᵃᵃᶠ = Zgrid.Δzᵃᵃᶠ
-    Δzᵃᵃᶜ = Zgrid.Δzᵃᵃᶜ
-    Lz    = Zgrid.Lz
 
+    # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
     lF = Field((Face, Face, Center), grid)
@@ -336,15 +333,15 @@ function WarpedLatitudeLongitudeGrid(arch = CPU();
     Hx, Hy, Hz = halo
 
     grid = OrthogonalSphericalShellGrid{Periodic, Bounded, Bounded}(arch,
-            Nx, Ny, Nz,
-            Hx, Hy, Hz,
-            convert(eltype(radius), Lz),
-            arch_array(arch,  λᶜᶜᵃ), arch_array(arch,  λᶠᶜᵃ), arch_array(arch,  λᶜᶠᵃ), arch_array(arch,  λᶠᶠᵃ),
-            arch_array(arch,  φᶜᶜᵃ), arch_array(arch,  φᶠᶜᵃ), arch_array(arch,  φᶜᶠᵃ), arch_array(arch,  φᶠᶠᵃ), arch_array(arch, zᵃᵃᶜ),  arch_array(arch, zᵃᵃᶠ),
-            arch_array(arch, Δxᶜᶜᵃ), arch_array(arch, Δxᶠᶜᵃ), arch_array(arch, Δxᶜᶠᵃ), arch_array(arch, Δxᶠᶠᵃ),
-            arch_array(arch, Δyᶜᶜᵃ), arch_array(arch, Δyᶜᶠᵃ), arch_array(arch, Δyᶠᶜᵃ), arch_array(arch, Δyᶠᶠᵃ), arch_array(arch, Δzᵃᵃᶜ), arch_array(arch, Δzᵃᵃᶠ),
-            arch_array(arch, Azᶜᶜᵃ), arch_array(arch, Azᶠᶜᵃ), arch_array(arch, Azᶜᶠᵃ), arch_array(arch, Azᶠᶠᵃ),
-            radius, nothing)
+                    Nx, Ny, Nz,
+                    Hx, Hy, Hz,
+                    convert(eltype(radius), Lz),
+                    arch_array(arch,  λᶜᶜᵃ), arch_array(arch,  λᶠᶜᵃ), arch_array(arch,  λᶜᶠᵃ), arch_array(arch,  λᶠᶠᵃ),
+                    arch_array(arch,  φᶜᶜᵃ), arch_array(arch,  φᶠᶜᵃ), arch_array(arch,  φᶜᶠᵃ), arch_array(arch,  φᶠᶠᵃ), arch_array(arch, zᵃᵃᶜ),  arch_array(arch, zᵃᵃᶠ),
+                    arch_array(arch, Δxᶜᶜᵃ), arch_array(arch, Δxᶠᶜᵃ), arch_array(arch, Δxᶜᶠᵃ), arch_array(arch, Δxᶠᶠᵃ),
+                    arch_array(arch, Δyᶜᶜᵃ), arch_array(arch, Δyᶜᶠᵃ), arch_array(arch, Δyᶠᶜᵃ), arch_array(arch, Δyᶠᶠᵃ), arch_array(arch, Δzᵃᵃᶜ), arch_array(arch, Δzᵃᵃᶠ),
+                    arch_array(arch, Azᶜᶜᵃ), arch_array(arch, Azᶠᶜᵃ), arch_array(arch, Azᶜᶠᵃ), arch_array(arch, Azᶠᶠᵃ),
+                    radius, nothing)
                                                         
     return grid
 end
