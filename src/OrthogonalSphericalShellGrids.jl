@@ -1,5 +1,7 @@
 module OrthogonalSphericalShellGrids
 
+export WarpedLatitudeLongitudeGrid
+
 using Oceananigans
 using Oceananigans.Grids: R_Earth
 
@@ -16,6 +18,13 @@ using KernelAbstractions: @kernel, @index
 using Oceananigans.Grids: generate_coordinate
 
 using Oceananigans.BoundaryConditions
+
+# Put here information about the grid, i.e.: 
+# 1) north pole latitude and longitude
+# 2) functions used to construct the Grid
+# 3) Numerical discretization used to construct the Grid
+# 4) Last great circle size in degrees
+struct WarpedLatitudeLongitude end
 
 @inline function linear_interpolate(x₀, x, y, offset) 
     x₁, x₂ = index_binary_search(x, x₀, length(x))
@@ -153,7 +162,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     f_interpolator(j) = linear_interpolate(j, fx, fy)
     g_interpolator(j) = linear_interpolate(j, fx, gy)
 
-    Nsol = 5000
+    Nsol = 1000
     xnum = zeros(1:Nλ+1, Nsol)
     ynum = zeros(1:Nλ+1, Nsol)
     jnum = zeros(1:Nλ+1, Nsol)
@@ -335,7 +344,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                     arch_array(arch, Δxᶜᶜᵃ), arch_array(arch, Δxᶠᶜᵃ), arch_array(arch, Δxᶜᶠᵃ), arch_array(arch, Δxᶠᶠᵃ),
                     arch_array(arch, Δyᶜᶜᵃ), arch_array(arch, Δyᶜᶠᵃ), arch_array(arch, Δyᶠᶜᵃ), arch_array(arch, Δyᶠᶠᵃ), arch_array(arch, Δzᵃᵃᶜ), arch_array(arch, Δzᵃᵃᶠ),
                     arch_array(arch, Azᶜᶜᵃ), arch_array(arch, Azᶠᶜᵃ), arch_array(arch, Azᶜᶠᵃ), arch_array(arch, Azᶠᶠᵃ),
-                    radius, nothing)
+                    radius, WarpedLatitudeLongitude())
                                                         
     return grid
 end
