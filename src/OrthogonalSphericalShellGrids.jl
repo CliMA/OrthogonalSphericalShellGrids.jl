@@ -94,12 +94,10 @@ function haversine(a, b, radius)
     return radius * acos(max(-1.0, min((x₁ * x₂ + y₁ * y₂ + z₁ * z₂) / radius^2, 1.0)))
 end
 
-@inline equator_fcurve(φ) = - sqrt((tan((90 - φ) / 360 * π))^2)
-
+@inline equator_fcurve(φ)      = - sqrt((tan((90 - φ) / 360 * π))^2)
 @inline stretching_function(φ) = (φ^2 / 145^2)
-
-@inline quadratic_f_curve(φ) =   equator_fcurve(φ) + stretching_function(φ)
-@inline quadratic_g_curve(φ) = - equator_fcurve(φ) + stretching_function(φ)
+@inline quadratic_f_curve(φ)   =   equator_fcurve(φ) + stretching_function(φ)
+@inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + stretching_function(φ)
 
 # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
 # φ has to reach the north pole.
@@ -136,14 +134,11 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
 
     Jeq = J[] + 1
 
-    fⱼ = zeros(Jeq:Nφ+1)
-    gⱼ = zeros(Jeq:Nφ+1)
+    fⱼ = zeros(1:Nφ+1)
+    gⱼ = zeros(1:Nφ+1)
 
-    x = zeros(Nλ+1, Jeq:Nφ+1)
-    y = zeros(Nλ+1, Jeq:Nφ+1)
-
-    xt = zeros(Nλ+1, Nφ+1)
-    yt = zeros(Nλ+1, Nφ+1)
+    x = zeros(Nλ+1, 1:Nφ+1)
+    y = zeros(Nλ+1, 1:Nφ+1)
 
     # Shif pole upwards
     for j in 1:Nφ+1
@@ -153,10 +148,10 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
 
     fy = fⱼ
     gy = gⱼ
-    fx = Float64.(collect(Jeq:Nφ+1))
+    fx = Float64.(collect(1:Nφ+1))
 
-    f_interpolator(j) = linear_interpolate(j, fx, fy, Jeq - 1)
-    g_interpolator(j) = linear_interpolate(j, fx, gy, Jeq - 1)
+    f_interpolator(j) = linear_interpolate(j, fx, fy)
+    g_interpolator(j) = linear_interpolate(j, fx, gy)
 
     Nsol = 5000
     xnum = zeros(1:Nλ+1, Nsol)
@@ -169,21 +164,19 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     for i in 1:Nλ+1
         for j in 1:Jeq-1
             h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
-            xt[i, j] = - fⱼ[j] * cos(h)
-            yt[i, j] = - fⱼ[j] * sin(h)
+            x[i, j] = - fⱼ[j] * cos(h)
+            y[i, j] = - fⱼ[j] * sin(h)
         end
         for j in Jeq:Nφ+1
             x[i, j]  = linear_interpolate(j, jnum[i, :], xnum[i, :])
             y[i, j]  = linear_interpolate(j, jnum[i, :], ynum[i, :])
-            xt[i, j] = x[i, j]
-            yt[i, j] = y[i, j]
         end
     end
     
     for i in 1:Nλ+1
         for j in 1:Nφ+1
-            λF[i, j] = - 180 / π * (atan(yt[i, j] / xt[i, j]))              
-            φF[i, j] = 90 - 360 / π * atan(sqrt(yt[i, j]^2 + xt[i, j]^2)) 
+            λF[i, j] = - 180 / π * (atan(y[i, j] / x[i, j]))              
+            φF[i, j] = 90 - 360 / π * atan(sqrt(y[i, j]^2 + x[i, j]^2)) 
         end
     end
 
@@ -201,8 +194,8 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     λF = circshift(λF, (1, 0))
     φF = circshift(φF, (1, 0))
 
-    Nx = length(λF[:, 1])
-    Ny = length(λF[:, 2]) - 1
+    Nx = Base.size(λF, 1)
+    Ny = Base.size(λF, 2) - 1
 
     # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
@@ -210,6 +203,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     lF = Field((Face, Face, Center), grid)
     pF = Field((Face, Face, Center), grid)
 
+    @show Base.size(lF), Base.size(λF)
     set!(lF, λF)
     set!(pF, φF)
 
@@ -224,8 +218,8 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     λᶠᶠᵃ[:, Ny+1] .= λᶠᶠᵃ[:, Ny]
     φᶠᶠᵃ[:, Ny+1] .= φᶠᶠᵃ[:, Ny]
 
-    λᶜᶠᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
-    λᶜᶜᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
+    λᶜᶠᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
+    λᶜᶜᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
 
     λᶠᶜᵃ = 0.5 .* OffsetArray(λᶠᶠᵃ.parent[:, 2:end] .+ λᶠᶠᵃ.parent[:, 1:end-1], λᶠᶠᵃ.offsets...);
     φᶠᶜᵃ = 0.5 .* OffsetArray(φᶠᶠᵃ.parent[:, 2:end] .+ φᶠᶠᵃ.parent[:, 1:end-1], φᶠᶠᵃ.offsets...);
@@ -234,8 +228,8 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
 
     # The λᶜᶠᵃ points need to be handled individually (λ jumps between -180 and 180)
     # and cannot average between them, find a better way to do this
-    for i in 1:size(λᶜᶠᵃ, 1) - 1
-        for j in 1:size(λᶜᶠᵃ, 2) - 1
+    for i in 1:Base.size(λᶜᶠᵃ, 1) - 1
+        for j in 1:Base.size(λᶜᶠᵃ, 2) - 1
             λᶜᶠᵃ.parent[i, j] = if abs(λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) > 100
                 (λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) / 2
             else
