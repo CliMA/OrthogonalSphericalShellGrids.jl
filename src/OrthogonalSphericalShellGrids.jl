@@ -105,8 +105,8 @@ end
 
 @inline equator_fcurve(φ)      = - sqrt((tan((90 - φ) / 360 * π))^2)
 @inline stretching_function(φ) = (φ^2 / 145^2)
-@inline quadratic_f_curve(φ)   =   equator_fcurve(φ) + stretching_function(φ)
-@inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + stretching_function(φ)
+@inline quadratic_f_curve(φ)   =   equator_fcurve(φ) + ifelse(φ > 0, cosh(φ/9) / cosh(10) * 0.4, 0) #stretching_function(φ), 0)
+@inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 
 # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
 # φ has to reach the north pole.
