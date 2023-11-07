@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-A Warped grid with the north pole singularity in russia
+A Warped grid with the north pole singularity in Russia, follows recipes from https://link.springer.com/article/10.1007/BF00211684
 ![Screenshot 2023-11-02 at 3 23 12 PM](https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl/assets/33547697/d2d88e08-70c2-4625-911f-f672d43f01e5)
 
 A quarter degree simulation using the `WarpedLatitudeLongitudeGrid`
