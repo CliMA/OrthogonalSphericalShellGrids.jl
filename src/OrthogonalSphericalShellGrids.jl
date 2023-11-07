@@ -26,24 +26,6 @@ using Oceananigans.BoundaryConditions
 # 4) Last great circle size in degrees
 struct WarpedLatitudeLongitude end
 
-@inline function linear_interpolate(x₀, x, y, offset) 
-    x₁, x₂ = index_binary_search(x, x₀, length(x))
-
-    x₁ += ceil(Int, offset)
-    x₂ += ceil(Int, offset)
-
-    @inbounds begin
-        y₁ = y[x₁]
-        y₂ = y[x₂]
-    end
-
-    if x₁ == x₂
-        return y₁
-    else
-        return (y₂ - y₁) / (x₂ - x₁) * (x₀ - x₁) + y₁
-    end
-end
-
 @inline function linear_interpolate(x₀, x, y) 
     i₁, i₂ = index_binary_search(x, x₀, length(x))
 
