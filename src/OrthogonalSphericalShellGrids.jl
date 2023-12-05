@@ -19,6 +19,8 @@ using Oceananigans.Grids: generate_coordinate
 
 using Oceananigans.BoundaryConditions
 
+@inline convert_to_0_360(x) = ((x % 360) + 360) % 360
+
 # Put here information about the grid, i.e.: 
 # 1) north pole latitude and longitude
 # 2) functions used to construct the Grid
@@ -91,7 +93,7 @@ end
 @inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 
 # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
-# φ has to reach the north pole.
+# φ has to reach the north pole.`
 # For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
 function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
                                      size, 
@@ -99,12 +101,13 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                                      halo        = (4, 4, 4), 
                                      radius      = R_Earth, 
                                      z           = (0, 1),
+                                     singularity_longitude = 230,
                                      f_curve     = quadratic_f_curve,
                                      g_curve     = quadratic_g_curve)
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
-
+    
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
@@ -230,6 +233,11 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     end
 
     λᶜᶜᵃ = 0.5 .* OffsetArray(λᶜᶠᵃ.parent[:, 2:end] .+ λᶜᶠᵃ.parent[:, 1:end-1], λᶜᶠᵃ.offsets...);
+
+    for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
+        λ .+= singularity_longitude
+        λ .=  convert_to_0_360.(λ)
+    end
 
     # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny  )
