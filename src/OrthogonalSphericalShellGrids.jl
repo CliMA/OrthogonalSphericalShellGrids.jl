@@ -21,11 +21,18 @@ using Oceananigans.BoundaryConditions
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 
-# Put here information about the grid, i.e.: 
-# 1) north pole latitude and longitude
-# 2) functions used to construct the Grid
-# 3) Numerical discretization used to construct the Grid
-# 4) Last great circle size in degrees
+"""
+    struct WarpedLatitudeLongitude
+
+A struct representing a warped latitude-longitude grid.
+
+TODO: put here information about the grid, i.e.: 
+
+1) north pole latitude and longitude
+2) functions used to construct the Grid
+3) Numerical discretization used to construct the Grid
+4) Last great circle size in degrees
+"""
 struct WarpedLatitudeLongitude end
 
 @inline function linear_interpolate(x₀, x, y) 
@@ -45,6 +52,20 @@ struct WarpedLatitudeLongitude end
     end
 end
 
+"""
+    secant_root_find(j₀, j₁, f; tol = 1e-12)
+
+Find the root of a function `f` using the secant method.
+
+# Arguments
+- `j₀`: Initial guess for the root.
+- `j₁`: Second guess for the root.
+- `f`: Function for which the root is to be found.
+- `tol`: Tolerance for convergence. Default is `1e-12`.
+
+# Returns
+The approximate root of the function `f`.
+"""
 function secant_root_find(j₀, j₁, f; tol = 1e-12)
     r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
     while abs(f(r)) > tol
@@ -54,7 +75,24 @@ function secant_root_find(j₀, j₁, f; tol = 1e-12)
     end
     return r
 end
+"""
+    compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, f_interpolator, g_interpolator)
 
+Compute the coordinates for an orthogonal spherical shell grid.
+
+# Arguments
+- `jnum`: An array to store the computed values of `jnum`.
+- `xnum`: An array to store the computed values of `xnum`.
+- `ynum`: An array to store the computed values of `ynum`.
+- `Δλᶠᵃᵃ`: The angular step size.
+- `Jeq`: The value of j at the equator.
+- `f_interpolator`: A function that interpolates the value of f.
+- `g_interpolator`: A function that interpolates the value of g.
+
+# Details
+This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
+It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
+"""
 @kernel function compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, f_interpolator, g_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
@@ -92,9 +130,42 @@ end
 @inline quadratic_f_curve(φ)   =   equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 @inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 
-# For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
-# φ has to reach the north pole.`
-# For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
+"""
+    WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
+                                size, 
+                                southermost_latitude = -75, 
+                                halo        = (4, 4, 4), 
+                                radius      = R_Earth, 
+                                z           = (0, 1),
+                                singularity_longitude = 230,
+                                f_curve     = quadratic_f_curve,
+                                g_curve     = quadratic_g_curve)
+
+Constructs a warped latitude-longitude grid on a spherical shell.
+
+Positional Arguments
+====================
+
+- `arch`: The architecture to use for the grid. Default is `CPU()`.
+- `FT::DataType`: The data type to use for the grid. Default is `Float64`.
+
+Keyword Arguments
+=================
+
+- `size`: The number of cells in the (longitude, latitude, z) dimensions.
+- `southermost_latitude`: The southernmost latitude of the grid. Default is -75.
+- `halo`: The halo size in the (longitude, latitude, z) dimensions. Default is (4, 4, 4).
+- `radius`: The radius of the spherical shell. Default is `R_Earth`.
+- `z`: The z-coordinate range of the grid. Default is (0, 1).
+- `singularity_longitude`: The longitude at which the grid has a singularity. Default is 230.
+- `f_curve`: The function to compute the f-curve for the grid. Default is `quadratic_f_curve`.
+- `g_curve`: The function to compute the g-curve for the grid. Default is `quadratic_g_curve`.
+
+Returns
+========
+
+A `OrthogonalSphericalShellGrid` object representing the warped latitude-longitude grid.
+"""
 function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
                                      size, 
                                      southermost_latitude = -75, 
@@ -104,6 +175,10 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                                      singularity_longitude = 230,
                                      f_curve     = quadratic_f_curve,
                                      g_curve     = quadratic_g_curve)
+
+    # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
+    # φ has to reach the north pole.`
+    # For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
