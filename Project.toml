@@ -17,6 +17,7 @@ DocumenterTools = "0.1"
 JLD2 = "0.4"
 KernelAbstractions = "0.9"
 OffsetArrays = "1.13"
+Oceananigans = "0.90"
 julia = "1"
 
 [extras]
