@@ -30,11 +30,11 @@ Compute the coordinates for an orthogonal spherical shell grid.
 This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
 It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
 """
-@kernel function compute_tripolar_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Δj, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator)
+@kernel function compute_tripolar_coords!(jnum, xnum, ynum, λᵢ, Δλ, Δj, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
     @inbounds begin
-        h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
+        h = (λᵢ - Δλ * i) * 2π / 360
         xnum[i, 1], ynum[i, 1] = cos(h), sin(h) # Starting always from a circumpherence at the equator
         Δx = xnum[i, 1] / N
         xnum[i, 2] = xnum[i, 1] - Δx
@@ -124,8 +124,15 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z,         :z, CPU())
 
-    λF = zeros(Nλ+1, Nφ+1)
-    φF = zeros(Nλ+1, Nφ+1)
+    λFF = zeros(Nλ, Nφ)
+    φFF = zeros(Nλ, Nφ)
+    λFC = zeros(Nλ, Nφ)
+    φFC = zeros(Nλ, Nφ)
+
+    λCF = zeros(Nλ, Nφ)
+    φCF = zeros(Nλ, Nφ)
+    λCC = zeros(Nλ, Nφ)
+    φCC = zeros(Nλ, Nφ)
 
     # Identify equator line 
     J = Ref(0)
@@ -140,9 +147,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     aⱼ = zeros(1:Nproc+1)
     bⱼ = zeros(1:Nproc+1)
     cⱼ = zeros(1:Nproc+1)
-
-    x = zeros(Nλ+1, 1:Nφ+1)
-    y = zeros(Nλ+1, 1:Nφ+1)
 
     φproc = range(southermost_latitude, 90, length = Nproc) 
     
@@ -163,23 +167,36 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     ynum = zeros(1:Nλ+1, Nnum)
     jnum = zeros(1:Nλ+1, Nnum)
 
+    # X - Face coordinates
+    λ₀ = 90 # ᵒ degrees  
+
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
 
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ+1, Nφ+1))
-    loop!(λF, φF, x, y, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum)
+    # Face - Face 
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λFF, φFF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
-    # Rotate the λ direction accordingly
-    for i in 1:Nλ÷2
-        λF[i, :] .-= 90
-        λF[i+Nλ÷2, :] .+= 90
-    end 
-        
-    λF = λF[1:end-1, 1:end-1]
-    φF = φF[1:end-1, 1:end-1]
+    # Face - Center 
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λFC, φFC, Jeq, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    
+    # X - Center coordinates
+    λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
 
-    Nx = Base.size(λF, 1)
-    Ny = Base.size(λF, 2)
+    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
+    
+    # Face - Face 
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λCF, φCF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    
+    # Face - Center 
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λCC, φCC, Jeq, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    
+    Nx = Nλ
+    Ny = Nφ
 
     # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
@@ -191,44 +208,43 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                           top    = nothing,
                                                           bottom = nothing)
                                                           
-    lF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
-    pF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
+    lFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
+    pFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
 
-    @show Base.size(lF), Base.size(λF)
-    set!(lF, λF)
-    set!(pF, φF)
+    lFC = Field((Face, Center, Center), grid; boundary_conditions = default_boundary_conditions)
+    pFC = Field((Face, Center, Center), grid; boundary_conditions = default_boundary_conditions)
+    
+    lCF = Field((Center, Face, Center), grid; boundary_conditions = default_boundary_conditions)
+    pCF = Field((Center, Face, Center), grid; boundary_conditions = default_boundary_conditions)
 
-    fill_halo_regions!((lF, pF))
+    lCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
+    pCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
 
-    λᶠᶠᵃ = lF.data[:, :, 1]
-    φᶠᶠᵃ = pF.data[:, :, 1]
+    set!(lFF, λFF)
+    set!(pFF, φFF)
 
-    λᶜᶠᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
-    λᶜᶜᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
+    set!(lFC, λFC)
+    set!(pFC, φFC)
 
-    λᶠᶜᵃ = 0.5 .* OffsetArray(λᶠᶠᵃ.parent[:, 2:end] .+ λᶠᶠᵃ.parent[:, 1:end-1], λᶠᶠᵃ.offsets...);
-    φᶠᶜᵃ = 0.5 .* OffsetArray(φᶠᶠᵃ.parent[:, 2:end] .+ φᶠᶠᵃ.parent[:, 1:end-1], φᶠᶠᵃ.offsets...);
-    φᶜᶠᵃ = 0.5 .* OffsetArray(φᶠᶠᵃ.parent[2:end, :] .+ φᶠᶠᵃ.parent[1:end-1, :], φᶠᶠᵃ.offsets...);
-    φᶜᶜᵃ = 0.5 .* OffsetArray(φᶜᶠᵃ.parent[:, 2:end] .+ φᶜᶠᵃ.parent[:, 1:end-1], φᶜᶠᵃ.offsets...);
+    set!(lCF, λCF)
+    set!(pCF, φCF)
 
-    # The λᶜᶠᵃ points need to be handled individually (λ jumps between -180 and 180)
-    # and cannot average between them, find a better way to do this
-    for i in 1:Base.size(λᶜᶠᵃ, 1) - 1
-        for j in 1:Base.size(λᶜᶠᵃ, 2) - 1
-            λᶜᶠᵃ.parent[i, j] = if abs(λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) > 100
-                (λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) / 2
-            else
-                (λᶠᶠᵃ.parent[i+1, j] .+ λᶠᶠᵃ.parent[i, j]) / 2
-            end
-        end
-    end
+    set!(lCC, λCC)
+    set!(pCC, φCC)
 
-    λᶜᶜᵃ = 0.5 .* OffsetArray(λᶜᶠᵃ.parent[:, 2:end] .+ λᶜᶠᵃ.parent[:, 1:end-1], λᶜᶠᵃ.offsets...);
+    fill_halo_regions!((lFF, pFF, lFC, pFC, lCF, pCF, lCC, pCC))
 
-    for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
-        # λ .+= singularity_longitude
-        λ .= convert_to_0_360.(λ)
-    end
+    λᶠᶠᵃ = lFF.data[:, :, 1]
+    φᶠᶠᵃ = pFF.data[:, :, 1]
+
+    λᶠᶜᵃ = lFC.data[:, :, 1]
+    φᶠᶜᵃ = pFC.data[:, :, 1]
+
+    λᶜᶠᵃ = lCF.data[:, :, 1]
+    φᶜᶠᵃ = pCF.data[:, :, 1]
+
+    λᶜᶜᵃ = lCC.data[:, :, 1]
+    φᶜᶜᵃ = pCC.data[:, :, 1]
 
     # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny)

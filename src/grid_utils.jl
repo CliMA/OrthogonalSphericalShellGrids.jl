@@ -125,20 +125,22 @@ end
     end
 end
 
-@kernel function _compute_coordinates!(λF, φF, x, y, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum)
+@kernel function _compute_coordinates!(λ, φ, Jeq, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ)
     i, j = @index(Global, NTuple)
 
     @inbounds begin
         if j < Jeq
-            h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
-            x[i, j] = - f_curve(φᵃᶠᵃ[j]) * cos(h)
-            y[i, j] = - f_curve(φᵃᶠᵃ[j]) * sin(h)
+            h = (90 - Δλ * i) * 2π / 360
+            x = - f_curve(φ_grid[j]) * cos(h)
+            y = - f_curve(φ_grid[j]) * sin(h)
         else
-            x[i, j]  = linear_interpolate(j, jnum[i, :], xnum[i, :])
-            y[i, j]  = linear_interpolate(j, jnum[i, :], ynum[i, :])
+            x = linear_interpolate(j, jnum[i, :], xnum[i, :])
+            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
         end
         
-        λF[i, j] = - 180 / π * (atan(y[i, j] / x[i, j]))              
-        φF[i, j] = 90 - 360 / π * atan(sqrt(y[i, j]^2 + x[i, j]^2)) 
+        λ[i, j] = - 180 / π * (atan(y / x))              
+        φ[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) 
+
+        λ[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
     end
 end

@@ -1,4 +1,4 @@
-using OrthogonalSphericalShellGrid
+using OrthogonalSphericalShellGrids
 using Oceananigans
 
 underlying_grid = TripolarGrid(size = (360, 180, 1), halo = (5, 5, 5))
@@ -70,6 +70,8 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 # c = sqrt(model.free_surface.gravitational_acceleration)
 # Δt = 0.3 * Δ / c
 
+Δt = 1minutes
+
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=25minutes)
 
 simulation = Simulation(model, Δt=Δt, stop_time=2000days)
@@ -90,6 +92,6 @@ progress(sim) = @info "$(prettytime(time(sim))) in $(prettytime(sim.run_wall_tim
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 
-pop!(simulation.callbacks, :nan_checker)
+# pop!(simulation.callbacks, :nan_checker)
 
 run!(simulation)
