@@ -30,7 +30,7 @@ Compute the coordinates for an orthogonal spherical shell grid.
 This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
 It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
 """
-@kernel function compute_tripolar_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator)
+@kernel function compute_tripolar_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Δj, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
     @inbounds begin
@@ -42,14 +42,11 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
         for n in 3:N
             # Great circles
             func(x) = (xnum[i, n-1] / a_interpolator(x)) ^2 + (ynum[i, n-1] / b_interpolator(x))^2 - 1 
-            jnum[i, n-1] = secant_root_find(Jeq, Nφ, func, Nφ+0.9999)
+            jnum[i, n-1] = bisection_root_find(func, Jeq-1.0, Nφ+1-Δj, Δj)
             xnum[i, n] = xnum[i, n-1] - Δx
             # Adams-Bashforth-2 integrator to find the perpendicular to the circle
             Gnew = ynum[i, n-1] * a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n-1]
             Gold = ynum[i, n-2] * a_interpolator(jnum[i, n-2])^2 / b_interpolator(jnum[i, n-2])^2 / xnum[i, n-2]
-            if i == 270
-                @show xnum[i, n-1], ynum[i, n-1], jnum[i, n - 1], Gnew, Gold, Jeq
-            end
 
             ynum[i, n] = ynum[i, n-1] - Δx * (1.5 * Gnew - 0.5 * Gold)
         end
@@ -57,9 +54,9 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
     end
 end
 
-@inline tripolar_stretching_function(φ) = (φ^2 / 145^2)
+@inline tripolar_stretching_function(φ) = (φ^2 / 110^2)
 
-@inline cosine_a_curve(φ) = - equator_fcurve(φ) # + ifelse(φ > 0, (φ / 1e4)^2, 0)
+@inline cosine_a_curve(φ) = - equator_fcurve(φ) 
 @inline cosine_b_curve(φ) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ), 0)
 
 @inline zero_c_curve(φ) = 0
@@ -107,6 +104,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       radius      = R_Earth, 
                       z           = (0, 1),
                       singularity_longitude = 230,
+                      Nproc       = 10000,
+                      Nnum        = 10000,
                       a_curve     = cosine_a_curve,
                       b_curve     = cosine_b_curve,
                       c_curve     = zero_c_curve)
@@ -138,39 +137,41 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Jeq = J[] + 1
 
-    aⱼ = zeros(1:Nφ+1)
-    bⱼ = zeros(1:Nφ+1)
-    cⱼ = zeros(1:Nφ+1)
+    aⱼ = zeros(1:Nproc+1)
+    bⱼ = zeros(1:Nproc+1)
+    cⱼ = zeros(1:Nproc+1)
 
     x = zeros(Nλ+1, 1:Nφ+1)
     y = zeros(Nλ+1, 1:Nφ+1)
 
+    φproc = range(southermost_latitude, 90, length = Nproc) 
+    
     # calculate the eccentricities of the ellipse
-    for j in 1:Nφ+1
-        aⱼ[j] = a_curve(φᵃᶠᵃ[j])
-        bⱼ[j] = b_curve(φᵃᶠᵃ[j]) 
-        cⱼ[j] = c_curve(φᵃᶠᵃ[j]) 
+    for (j, φ) in enumerate(φproc)
+        aⱼ[j] = a_curve(φ)
+        bⱼ[j] = b_curve(φ) 
+        cⱼ[j] = c_curve(φ) 
     end
 
-    fx = Float64.(collect(1:Nφ+1))
+    fx = Float64.(collect(1:Nproc) ./ Nproc * (Nφ + 1))
 
     a_interpolator(j) = linear_interpolate(j, fx, aⱼ)
     b_interpolator(j) = linear_interpolate(j, fx, bⱼ)
     c_interpolator(j) = linear_interpolate(j, fx, cⱼ)
 
-    Nsol = 2000
-    xnum = zeros(1:Nλ+1, Nsol)
-    ynum = zeros(1:Nλ+1, Nsol)
-    jnum = zeros(1:Nλ+1, Nsol)
+    Nnum = 10000
+    xnum = zeros(1:Nλ+1, Nnum)
+    ynum = zeros(1:Nλ+1, Nnum)
+    jnum = zeros(1:Nλ+1, Nnum)
 
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
+    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
 
     for i in 1:Nλ+1
         for j in 1:Jeq-1
             h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
-            x[i, j] = - aⱼ[j] * cos(h)
-            y[i, j] = - aⱼ[j] * sin(h)
+            x[i, j] = - a_curve(φᵃᶠᵃ[j]) * cos(h)
+            y[i, j] = - a_curve(φᵃᶠᵃ[j]) * sin(h)
         end
         for j in Jeq:Nφ+1
             x[i, j]  = linear_interpolate(j, jnum[i, :], xnum[i, :])
@@ -185,7 +186,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
         end
     end
     
-    return aⱼ, bⱼ, cⱼ, x, y, xnum, ynum, jnum, λF, φF, a_interpolator, b_interpolator, c_interpolator
+    # return aⱼ, bⱼ, cⱼ, x, y, xnum, ynum, jnum, λF, φF, a_interpolator, b_interpolator, c_interpolator
 
     # Rotate the λ direction accordingly
     for i in 1:Nλ÷2

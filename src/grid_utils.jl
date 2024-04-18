@@ -30,15 +30,31 @@ Find the root of a function `f` using the secant method.
 # Returns
 The approximate root of the function `f`.
 """
-function secant_root_find(j₀, j₁, f, N; tol = 1e-12)
+function secant_root_find(j₀, j₁, f, N; tol = 1e-12, maxiter=Inf)
     r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
-    while abs(f(r)) > tol
+    iter = 0
+    while abs(f(r)) > tol && iter < maxiter
         j₀ = max(1, min(j₁, N))
         j₁ = max(1, min(r,  N))
         r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
-        # @show r, j₀, j₁
+        iter += 1
+        @show r, j₀, j₁, abs(f(r))
     end
     return r
+end
+
+function bisection_root_find(f, j₀, j₁, Δj)
+    while j₀ + Δj < j₁ 
+        jₘ = (j₀ + j₁) / 2
+        if f(jₘ + 1) == 0
+            return jₘ
+        elseif f(jₘ + 1) < 0
+            j₀ = jₘ
+        else
+            j₁ = jₘ
+        end
+    end
+    return (j₀ + j₁) / 2
 end
 
 function haversine(a, b, radius)
