@@ -30,12 +30,13 @@ Find the root of a function `f` using the secant method.
 # Returns
 The approximate root of the function `f`.
 """
-function secant_root_find(j₀, j₁, f; tol = 1e-12)
+function secant_root_find(j₀, j₁, f, N; tol = 1e-12)
     r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
     while abs(f(r)) > tol
-        j₀ = j₁
-        j₁ = r
+        j₀ = max(1, min(j₁, N))
+        j₁ = max(1, min(r,  N))
         r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
+        # @show r, j₀, j₁
     end
     return r
 end

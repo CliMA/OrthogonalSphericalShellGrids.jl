@@ -30,7 +30,7 @@ Compute the coordinates for an orthogonal spherical shell grid.
 This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
 It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
 """
-@kernel function compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, f_interpolator, g_interpolator)
+@kernel function compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
     @inbounds begin
@@ -42,7 +42,7 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
         for n in 3:N
             # Great circles
             func(x) = xnum[i, n-1]^2 + ynum[i, n-1]^2 - ynum[i, n-1] * (f_interpolator(x) + g_interpolator(x)) + f_interpolator(x) * g_interpolator(x)
-            jnum[i, n-1] = secant_root_find(Jeq, Jeq+1, func)
+            jnum[i, n-1] = secant_root_find(Jeq, Jeq+1, func, Nφ+1)
             xnum[i, n]   = xnum[i, n-1] - Δx
             # Adams-Bashforth-2 integrator to find the perpendicular to the circle
             ynum[i, n]   = ynum[i, n-1] - Δx * (1.5 * (2ynum[i, n-1] - f_interpolator(jnum[i, n-1]) - g_interpolator(jnum[i, n-1])) / (2 * xnum[i, n-1]) - 
@@ -150,13 +150,15 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     f_interpolator(j) = linear_interpolate(j, fx, fy)
     g_interpolator(j) = linear_interpolate(j, fx, gy)
 
+    @info "I am here!"
+
     Nsol = 1000
     xnum = zeros(1:Nλ+1, Nsol)
     ynum = zeros(1:Nλ+1, Nsol)
     jnum = zeros(1:Nλ+1, Nsol)
 
     loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, f_interpolator, g_interpolator) 
+    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator) 
 
     for i in 1:Nλ+1
         for j in 1:Jeq-1

@@ -30,7 +30,7 @@ Compute the coordinates for an orthogonal spherical shell grid.
 This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
 It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
 """
-@kernel function compute_tripolar_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, a_interpolator, b_interpolator, c_interpolator)
+@kernel function compute_tripolar_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
     @inbounds begin
@@ -41,25 +41,28 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
         ynum[i, 2] = ynum[i, 1] - Δx * tan(h)
         for n in 3:N
             # Great circles
-            func(x) = (xnum[i, n-1] / a_interpolator(x)) ^2 + (ynum[i, n-1] / b_interpolator(x))^2 - 2 * c_interpolator(x) / b_interpolator(x) * ynum[i, n-1] 
-                      - 1 + (c_interpolator(x) / b_interpolator(x))^2
-            jnum[i, n-1] = secant_root_find(Jeq, Jeq+1, func)
-            xnum[i, n]   = xnum[i, n-1] - Δx
+            func(x) = (xnum[i, n-1] / a_interpolator(x)) ^2 + (ynum[i, n-1] / b_interpolator(x))^2 - 1 
+            jnum[i, n-1] = secant_root_find(Jeq, Nφ, func, Nφ+0.9999)
+            xnum[i, n] = xnum[i, n-1] - Δx
             # Adams-Bashforth-2 integrator to find the perpendicular to the circle
-            Gnew = a_interpolator(jnum[i, n-1])^2 * ynum[i, n-1] / (xnum[i, n-1] * b_interpolator(jnum[i, n-1])^2 - c_interpolator(jnum[i, n-1]) * a_interpolator(jnum[i, n-1])^2)
-            Gold = a_interpolator(jnum[i, n-2])^2 * ynum[i, n-2] / (xnum[i, n-2] * b_interpolator(jnum[i, n-2])^2 - c_interpolator(jnum[i, n-2]) * a_interpolator(jnum[i, n-2])^2)
+            Gnew = ynum[i, n-1] * a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n-1]
+            Gold = ynum[i, n-2] * a_interpolator(jnum[i, n-2])^2 / b_interpolator(jnum[i, n-2])^2 / xnum[i, n-2]
+            if i == 270
+                @show xnum[i, n-1], ynum[i, n-1], jnum[i, n - 1], Gnew, Gold, Jeq
+            end
 
-            ynum[i, n]   = ynum[i, n-1] - Δx * (1.5 * Gnew - 0.5 * Gold)
+            ynum[i, n] = ynum[i, n-1] - Δx * (1.5 * Gnew - 0.5 * Gold)
         end
         @show i
     end
 end
 
-@inline stretching_function(φ) = cos(φ )
+@inline tripolar_stretching_function(φ) = (φ^2 / 145^2)
 
-@inline a_curve(φ) = cos(φ / 90 * π / 2)
-@inline b_curve(φ) = (cos(φ / 90 * π / 2) + 0.4) / 1.4 
-@inline c_curve(φ) = 0
+@inline cosine_a_curve(φ) = - equator_fcurve(φ) # + ifelse(φ > 0, (φ / 1e4)^2, 0)
+@inline cosine_b_curve(φ) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ), 0)
+
+@inline zero_c_curve(φ) = 0
 
 """
     TripolarGrid(arch = CPU(), FT::DataType = Float64; 
@@ -72,7 +75,7 @@ end
                  f_curve     = quadratic_f_curve,
                  g_curve     = quadratic_g_curve)
 
-Constructs a warped latitude-longitude grid on a spherical shell.
+Constructs a tripolar grid on a spherical shell.
 
 Positional Arguments
 ====================
@@ -95,17 +98,18 @@ Keyword Arguments
 Returns
 ========
 
-A `OrthogonalSphericalShellGrid` object representing the warped latitude-longitude grid.
+A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere
 """
-function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
-                                     size, 
-                                     southermost_latitude = -85, 
-                                     halo        = (4, 4, 4), 
-                                     radius      = R_Earth, 
-                                     z           = (0, 1),
-                                     singularity_longitude = 230,
-                                     a_curve     = quadratic_f_curve,
-                                     b_curve     = quadratic_g_curve)
+function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
+                      size, 
+                      southermost_latitude = -85, 
+                      halo        = (4, 4, 4), 
+                      radius      = R_Earth, 
+                      z           = (0, 1),
+                      singularity_longitude = 230,
+                      a_curve     = cosine_a_curve,
+                      b_curve     = cosine_b_curve,
+                      c_curve     = zero_c_curve)
 
     # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
     # φ has to reach the north pole.`
@@ -141,35 +145,32 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     x = zeros(Nλ+1, 1:Nφ+1)
     y = zeros(Nλ+1, 1:Nφ+1)
 
-    # Shif pole upwards
+    # calculate the eccentricities of the ellipse
     for j in 1:Nφ+1
         aⱼ[j] = a_curve(φᵃᶠᵃ[j])
         bⱼ[j] = b_curve(φᵃᶠᵃ[j]) 
         cⱼ[j] = c_curve(φᵃᶠᵃ[j]) 
     end
 
-    ay = aⱼ
-    by = bⱼ
-    cy = bⱼ
     fx = Float64.(collect(1:Nφ+1))
 
-    a_interpolator(j) = linear_interpolate(j, fx, ay)
-    b_interpolator(j) = linear_interpolate(j, fx, by)
-    c_interpolator(j) = linear_interpolate(j, fx, cy)
+    a_interpolator(j) = linear_interpolate(j, fx, aⱼ)
+    b_interpolator(j) = linear_interpolate(j, fx, bⱼ)
+    c_interpolator(j) = linear_interpolate(j, fx, cⱼ)
 
-    Nsol = 1000
+    Nsol = 2000
     xnum = zeros(1:Nλ+1, Nsol)
     ynum = zeros(1:Nλ+1, Nsol)
     jnum = zeros(1:Nλ+1, Nsol)
 
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, a_interpolator, b_interpolator, c_interpolator) 
+    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
 
     for i in 1:Nλ+1
         for j in 1:Jeq-1
             h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
-            x[i, j] = - fⱼ[j] * cos(h)
-            y[i, j] = - fⱼ[j] * sin(h)
+            x[i, j] = - aⱼ[j] * cos(h)
+            y[i, j] = - aⱼ[j] * sin(h)
         end
         for j in Jeq:Nφ+1
             x[i, j]  = linear_interpolate(j, jnum[i, :], xnum[i, :])
@@ -183,17 +184,14 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
             φF[i, j] = 90 - 360 / π * atan(sqrt(y[i, j]^2 + x[i, j]^2)) 
         end
     end
+    
+    return aⱼ, bⱼ, cⱼ, x, y, xnum, ynum, jnum, λF, φF, a_interpolator, b_interpolator, c_interpolator
 
     # Rotate the λ direction accordingly
     for i in 1:Nλ÷2
         λF[i, :] .-= 90
         λF[i+Nλ÷2, :] .+= 90
     end 
-
-    # Remove the top of the grid for now 10, then figure out a way
-    # to give a choice for the last great circle size
-    λF = λF[1:end-1, 1:end-10]
-    φF = φF[1:end-1, 1:end-10]
 
     λF = circshift(λF, (1, 0))
     φF = circshift(φF, (1, 0))
@@ -265,47 +263,47 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     Azᶜᶠᵃ = zeros(Nx, Ny+1)
     Azᶠᶠᵃ = zeros(Nx, Ny+1)
 
-    @inbounds begin
-        for i in 1:Nx, j in 1:Ny
-            Δxᶜᶜᵃ[i, j] = haversine((λᶠᶜᵃ[i+1, j], φᶠᶜᵃ[i+1, j]), (λᶠᶜᵃ[i, j],   φᶠᶜᵃ[i, j]),   radius)
-            Δxᶠᶜᵃ[i, j] = haversine((λᶜᶜᵃ[i, j],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i-1, j], φᶜᶜᵃ[i-1, j]), radius)
-            Δxᶜᶠᵃ[i, j] = haversine((λᶠᶠᵃ[i+1, j], φᶠᶠᵃ[i+1, j]), (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
-            Δxᶠᶠᵃ[i, j] = haversine((λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   (λᶜᶠᵃ[i-1, j], φᶜᶠᵃ[i-1, j]), radius)
+    # @inbounds begin
+    #     for i in 1:Nx, j in 1:Ny
+    #         Δxᶜᶜᵃ[i, j] = haversine((λᶠᶜᵃ[i+1, j], φᶠᶜᵃ[i+1, j]), (λᶠᶜᵃ[i, j],   φᶠᶜᵃ[i, j]),   radius)
+    #         Δxᶠᶜᵃ[i, j] = haversine((λᶜᶜᵃ[i, j],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i-1, j], φᶜᶜᵃ[i-1, j]), radius)
+    #         Δxᶜᶠᵃ[i, j] = haversine((λᶠᶠᵃ[i+1, j], φᶠᶠᵃ[i+1, j]), (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
+    #         Δxᶠᶠᵃ[i, j] = haversine((λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   (λᶜᶠᵃ[i-1, j], φᶜᶠᵃ[i-1, j]), radius)
 
-            Δyᶜᶜᵃ[i, j] = haversine((λᶜᶠᵃ[i, j+1], φᶜᶠᵃ[i, j+1]),   (λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   radius)
-            Δyᶜᶠᵃ[i, j] = haversine((λᶜᶜᵃ[i, j  ],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i, j-1], φᶜᶜᵃ[i, j-1]), radius)
-            Δyᶠᶜᵃ[i, j] = haversine((λᶠᶠᵃ[i, j+1], φᶠᶠᵃ[i, j+1]),   (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
-            Δyᶠᶠᵃ[i, j] = haversine((λᶠᶜᵃ[i, j  ],   φᶠᶜᵃ[i, j]),   (λᶠᶜᵃ[i, j-1], φᶠᶜᵃ[i, j-1]), radius)
+    #         Δyᶜᶜᵃ[i, j] = haversine((λᶜᶠᵃ[i, j+1], φᶜᶠᵃ[i, j+1]),   (λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   radius)
+    #         Δyᶜᶠᵃ[i, j] = haversine((λᶜᶜᵃ[i, j  ],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i, j-1], φᶜᶜᵃ[i, j-1]), radius)
+    #         Δyᶠᶜᵃ[i, j] = haversine((λᶠᶠᵃ[i, j+1], φᶠᶠᵃ[i, j+1]),   (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
+    #         Δyᶠᶠᵃ[i, j] = haversine((λᶠᶜᵃ[i, j  ],   φᶠᶜᵃ[i, j]),   (λᶠᶜᵃ[i, j-1], φᶠᶜᵃ[i, j-1]), radius)
         
-            a = lat_lon_to_cartesian(φᶠᶠᵃ[ i ,  j ], λᶠᶠᵃ[ i ,  j ], 1)
-            b = lat_lon_to_cartesian(φᶠᶠᵃ[i+1,  j ], λᶠᶠᵃ[i+1,  j ], 1)
-            c = lat_lon_to_cartesian(φᶠᶠᵃ[i+1, j+1], λᶠᶠᵃ[i+1, j+1], 1)
-            d = lat_lon_to_cartesian(φᶠᶠᵃ[ i , j+1], λᶠᶠᵃ[ i , j+1], 1)
+    #         a = lat_lon_to_cartesian(φᶠᶠᵃ[ i ,  j ], λᶠᶠᵃ[ i ,  j ], 1)
+    #         b = lat_lon_to_cartesian(φᶠᶠᵃ[i+1,  j ], λᶠᶠᵃ[i+1,  j ], 1)
+    #         c = lat_lon_to_cartesian(φᶠᶠᵃ[i+1, j+1], λᶠᶠᵃ[i+1, j+1], 1)
+    #         d = lat_lon_to_cartesian(φᶠᶠᵃ[ i , j+1], λᶠᶠᵃ[ i , j+1], 1)
 
-            Azᶜᶜᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2
+    #         Azᶜᶜᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2
 
-            a = lat_lon_to_cartesian(φᶜᶠᵃ[i-1,  j ], λᶜᶠᵃ[i-1,  j ], 1)
-            b = lat_lon_to_cartesian(φᶜᶠᵃ[ i ,  j ], λᶜᶠᵃ[ i ,  j ], 1)
-            c = lat_lon_to_cartesian(φᶜᶠᵃ[ i , j+1], λᶜᶠᵃ[ i , j+1], 1)
-            d = lat_lon_to_cartesian(φᶜᶠᵃ[i-1, j+1], λᶜᶠᵃ[i-1, j+1], 1)
+    #         a = lat_lon_to_cartesian(φᶜᶠᵃ[i-1,  j ], λᶜᶠᵃ[i-1,  j ], 1)
+    #         b = lat_lon_to_cartesian(φᶜᶠᵃ[ i ,  j ], λᶜᶠᵃ[ i ,  j ], 1)
+    #         c = lat_lon_to_cartesian(φᶜᶠᵃ[ i , j+1], λᶜᶠᵃ[ i , j+1], 1)
+    #         d = lat_lon_to_cartesian(φᶜᶠᵃ[i-1, j+1], λᶜᶠᵃ[i-1, j+1], 1)
 
-            Azᶠᶜᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
+    #         Azᶠᶜᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
 
-            a = lat_lon_to_cartesian(φᶠᶜᵃ[ i , j-1], λᶠᶜᵃ[ i , j-1], 1)
-            b = lat_lon_to_cartesian(φᶠᶜᵃ[i+1, j-1], λᶠᶜᵃ[i+1, j-1], 1)
-            c = lat_lon_to_cartesian(φᶠᶜᵃ[i+1,  j ], λᶠᶜᵃ[i+1,  j ], 1)
-            d = lat_lon_to_cartesian(φᶠᶜᵃ[ i ,  j ], λᶠᶜᵃ[ i ,  j ], 1)
+    #         a = lat_lon_to_cartesian(φᶠᶜᵃ[ i , j-1], λᶠᶜᵃ[ i , j-1], 1)
+    #         b = lat_lon_to_cartesian(φᶠᶜᵃ[i+1, j-1], λᶠᶜᵃ[i+1, j-1], 1)
+    #         c = lat_lon_to_cartesian(φᶠᶜᵃ[i+1,  j ], λᶠᶜᵃ[i+1,  j ], 1)
+    #         d = lat_lon_to_cartesian(φᶠᶜᵃ[ i ,  j ], λᶠᶜᵃ[ i ,  j ], 1)
 
-            Azᶜᶠᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
+    #         Azᶜᶠᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
 
-            a = lat_lon_to_cartesian(φᶜᶜᵃ[i-1, j-1], λᶜᶜᵃ[i-1, j-1], 1)
-            b = lat_lon_to_cartesian(φᶜᶜᵃ[ i , j-1], λᶜᶜᵃ[ i , j-1], 1)
-            c = lat_lon_to_cartesian(φᶜᶜᵃ[ i ,  j ], λᶜᶜᵃ[ i ,  j ], 1)
-            d = lat_lon_to_cartesian(φᶜᶜᵃ[i-1,  j ], λᶜᶜᵃ[i-1,  j ], 1)
+    #         a = lat_lon_to_cartesian(φᶜᶜᵃ[i-1, j-1], λᶜᶜᵃ[i-1, j-1], 1)
+    #         b = lat_lon_to_cartesian(φᶜᶜᵃ[ i , j-1], λᶜᶜᵃ[ i , j-1], 1)
+    #         c = lat_lon_to_cartesian(φᶜᶜᵃ[ i ,  j ], λᶜᶜᵃ[ i ,  j ], 1)
+    #         d = lat_lon_to_cartesian(φᶜᶜᵃ[i-1,  j ], λᶜᶜᵃ[i-1,  j ], 1)
 
-            Azᶠᶠᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
-        end
-    end
+    #         Azᶠᶠᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
+    #     end
+    # end
 
     # Metrics fields to fill halos
     FF = Field((Face, Face, Center),     grid)
@@ -335,7 +333,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
 
     Hx, Hy, Hz = halo
 
-    grid = OrthogonalSphericalShellGrid{Periodic, Bounded, Bounded}(arch,
+    grid = OrthogonalSphericalShellGrid{Periodic, RightConnected, Bounded}(arch,
                     Nx, Ny, Nz,
                     Hx, Hy, Hz,
                     convert(eltype(radius), Lz),
@@ -344,7 +342,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                     arch_array(arch, Δxᶜᶜᵃ), arch_array(arch, Δxᶠᶜᵃ), arch_array(arch, Δxᶜᶠᵃ), arch_array(arch, Δxᶠᶠᵃ),
                     arch_array(arch, Δyᶜᶜᵃ), arch_array(arch, Δyᶜᶠᵃ), arch_array(arch, Δyᶠᶜᵃ), arch_array(arch, Δyᶠᶠᵃ), arch_array(arch, Δzᵃᵃᶜ), arch_array(arch, Δzᵃᵃᶠ),
                     arch_array(arch, Azᶜᶜᵃ), arch_array(arch, Azᶠᶜᵃ), arch_array(arch, Azᶜᶠᵃ), arch_array(arch, Azᶠᶠᵃ),
-                    radius, WarpedLatitudeLongitude())
+                    radius, Tripolar())
                                                         
     return grid
 end
