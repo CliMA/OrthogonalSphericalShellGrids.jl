@@ -54,7 +54,7 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
     end
 end
 
-@inline tripolar_stretching_function(φ) = (φ^2 / 145^2)
+@inline tripolar_stretching_function(φ) = (φ / 145)^2
 
 @inline cosine_a_curve(φ) = - equator_fcurve(φ) 
 @inline cosine_b_curve(φ) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ), 0)
@@ -180,7 +180,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     φF = circshift(φF, (1, 0))
         
     Nx = Base.size(λF, 1)
-    Ny = Base.size(λF, 2) - 1
+    Ny = Base.size(λF, 2) 
 
     # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
@@ -259,7 +259,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
           Δyᶠᶜᵃ, Δyᶜᶜᵃ, Δyᶜᶠᵃ, Δyᶠᶠᵃ,
           Azᶠᶜᵃ, Azᶜᶜᵃ, Azᶜᶠᵃ, Azᶠᶠᵃ,
           λᶠᶜᵃ, λᶜᶜᵃ, λᶜᶠᵃ, λᶠᶠᵃ,
-          φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ)
+          φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ,
+          radius)
 
     # Metrics fields to fill halos
     FF = Field((Face, Face, Center),     grid; boundary_conditions = default_boundary_conditions)

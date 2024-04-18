@@ -38,7 +38,6 @@ function secant_root_find(j₀, j₁, f, N; tol = 1e-12, maxiter=Inf)
         j₁ = max(1, min(r,  N))
         r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
         iter += 1
-        @show r, j₀, j₁, abs(f(r))
     end
     return r
 end
@@ -71,7 +70,7 @@ end
                                      Δyᶠᶜᵃ, Δyᶜᶜᵃ, Δyᶜᶠᵃ, Δyᶠᶠᵃ,
                                      Azᶠᶜᵃ, Azᶜᶜᵃ, Azᶜᶠᵃ, Azᶠᶠᵃ,
                                      λᶠᶜᵃ, λᶜᶜᵃ, λᶜᶠᵃ, λᶠᶠᵃ,
-                                     φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ)
+                                     φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ, radius)
 
     i, j = @index(Global, NTuple)
     @inbounds begin

@@ -1,6 +1,6 @@
 module OrthogonalSphericalShellGrids
 
-export WarpedLatitudeLongitudeGrid
+export WarpedLatitudeLongitudeGrid, TripolarGrid, ZipperBoundaryCondition
 
 using Oceananigans
 using Oceananigans.Grids: R_Earth
