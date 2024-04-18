@@ -49,6 +49,8 @@ model = HydrostaticFreeSurfaceModel(; grid, free_surface,
                                       buoyancy = nothing,
                                       tracers = :c)
 
+ζ = Oceananigans.Models.HydrostaticFreeSurfaceModels.VerticalVorticityField(model)    
+
 # Parameters
 ϵ = 0.1 # perturbation magnitude
 ℓ = 0.5 # Gaussian width
@@ -72,7 +74,7 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 Δt = 1minutes
 
-wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=25minutes)
+wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)
 
 simulation = Simulation(model, Δt=Δt, stop_time=2000days)
 
@@ -87,7 +89,7 @@ simulation.output_writers[:free_surface] = JLD2OutputWriter(model, (; η = model
                                                               indices = (:, :, -4:-3),
                                                               schedule = TimeInterval(2hours))
 
-progress(sim) = @info "$(prettytime(time(sim))) in $(prettytime(sim.run_wall_time)) with $(prettytime(sim.Δt))"
+progress(sim) = @info @sprintf("%s with %s, velocity: %.2e %.2e", prettytime(time(sim)), prettytime(sim.Δt), maximum(sim.model.velocities.u), maximum(sim.model.velocities.v)) 
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))

@@ -6,7 +6,7 @@ using Oceananigans
 using Oceananigans.Grids: R_Earth
 
 using Oceananigans.Fields: index_binary_search
-using Oceananigans.Architectures: device, arch_array
+using Oceananigans.Architectures: device, on_architecture
 using JLD2
 
 using Oceananigans.Grids: halo_size, spherical_area_quadrilateral
