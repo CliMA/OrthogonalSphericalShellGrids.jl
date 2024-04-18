@@ -175,6 +175,9 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
         λF[i+Nλ÷2, :] .+= 90
     end 
         
+    λF = λF[1:end-1, 1:end-1]
+    φF = φF[1:end-1, 1:end-1]
+
     Nx = Base.size(λF, 1)
     Ny = Base.size(λF, 2)
 
