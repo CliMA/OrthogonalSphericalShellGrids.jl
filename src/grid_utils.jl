@@ -56,6 +56,17 @@ function bisection_root_find(f, j₀, j₁, Δj)
     return (j₀ + j₁) / 2
 end
 
+function get_wireframe(λF, φF)
+    φF = 90 .- φF[1:end-1, :]
+    λF = λF[1:end-1, :]
+
+    x = @. cosd(λF) * sind(φF)
+    y = @. sind(λF) * sind(φF)
+    z = @. cosd(φF)
+
+    return x, y, z
+end
+
 function haversine(a, b, radius)
     λ₁, φ₁ = a
     λ₂, φ₂ = b

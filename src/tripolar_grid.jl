@@ -159,7 +159,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     b_interpolator(j) = linear_interpolate(j, fx, bⱼ)
     c_interpolator(j) = linear_interpolate(j, fx, cⱼ)
 
-    Nnum = 10000
     xnum = zeros(1:Nλ+1, Nnum)
     ynum = zeros(1:Nλ+1, Nnum)
     jnum = zeros(1:Nλ+1, Nnum)
@@ -175,12 +174,9 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
         λF[i, :] .-= 90
         λF[i+Nλ÷2, :] .+= 90
     end 
-
-    λF = circshift(λF, (1, 0))
-    φF = circshift(φF, (1, 0))
         
     Nx = Base.size(λF, 1)
-    Ny = Base.size(λF, 2) 
+    Ny = Base.size(λF, 2)
 
     # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
@@ -203,12 +199,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     λᶠᶠᵃ = lF.data[:, :, 1]
     φᶠᶠᵃ = pF.data[:, :, 1]
-
-    λᶠᶠᵃ[:, 0] .= λᶠᶠᵃ[:, 1]
-    φᶠᶠᵃ[:, 0] .= φᶠᶠᵃ[:, 1]
-
-    λᶠᶠᵃ[:, Ny+1] .= λᶠᶠᵃ[:, Ny]
-    φᶠᶠᵃ[:, Ny+1] .= φᶠᶠᵃ[:, Ny]
 
     λᶜᶠᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
     λᶜᶜᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
@@ -233,25 +223,25 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     λᶜᶜᵃ = 0.5 .* OffsetArray(λᶜᶠᵃ.parent[:, 2:end] .+ λᶜᶠᵃ.parent[:, 1:end-1], λᶜᶠᵃ.offsets...);
 
     for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
-        λ .+= singularity_longitude
-        λ .=  convert_to_0_360.(λ)
+        # λ .+= singularity_longitude
+        λ .= convert_to_0_360.(λ)
     end
 
     # Metrics
-    Δxᶜᶜᵃ = zeros(Nx, Ny  )
-    Δxᶠᶜᵃ = zeros(Nx, Ny  )
-    Δxᶜᶠᵃ = zeros(Nx, Ny+1)
-    Δxᶠᶠᵃ = zeros(Nx, Ny+1)
+    Δxᶜᶜᵃ = zeros(Nx, Ny)
+    Δxᶠᶜᵃ = zeros(Nx, Ny)
+    Δxᶜᶠᵃ = zeros(Nx, Ny)
+    Δxᶠᶠᵃ = zeros(Nx, Ny)
 
-    Δyᶜᶜᵃ = zeros(Nx, Ny  )
-    Δyᶠᶜᵃ = zeros(Nx, Ny  )
-    Δyᶜᶠᵃ = zeros(Nx, Ny+1)
-    Δyᶠᶠᵃ = zeros(Nx, Ny+1)
+    Δyᶜᶜᵃ = zeros(Nx, Ny)
+    Δyᶠᶜᵃ = zeros(Nx, Ny)
+    Δyᶜᶠᵃ = zeros(Nx, Ny)
+    Δyᶠᶠᵃ = zeros(Nx, Ny)
 
-    Azᶜᶜᵃ = zeros(Nx, Ny  )
-    Azᶠᶜᵃ = zeros(Nx, Ny  )
-    Azᶜᶠᵃ = zeros(Nx, Ny+1)
-    Azᶠᶠᵃ = zeros(Nx, Ny+1)
+    Azᶜᶜᵃ = zeros(Nx, Ny)
+    Azᶠᶜᵃ = zeros(Nx, Ny)
+    Azᶜᶠᵃ = zeros(Nx, Ny)
+    Azᶠᶠᵃ = zeros(Nx, Ny)
 
     loop! = _calculate_metrics!(device(CPU()), (16, 16), (Nx, Ny))
 
