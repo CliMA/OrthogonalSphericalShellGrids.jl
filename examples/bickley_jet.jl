@@ -1,5 +1,7 @@
-using OrthogonalSphericalShellGrids
 using Oceananigans
+using Oceananigans.Units
+using Printf
+using OrthogonalSphericalShellGrids
 
 underlying_grid = TripolarGrid(size = (360, 180, 1), halo = (5, 5, 5))
 
@@ -78,22 +80,16 @@ wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)
 
 simulation = Simulation(model, Δt=Δt, stop_time=2000days)
 
-simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers),
-                                                              overwrite_existing = true, 
+simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "orca025_bickley.jld2", 
-                                                              schedule = TimeInterval(2hours))
-
-simulation.output_writers[:free_surface] = JLD2OutputWriter(model, (; η = model.free_surface.η),
-                                                              overwrite_existing = true, 
-                                                              filename = "orca025_surface.jld2", 
-                                                              indices = (:, :, -4:-3),
-                                                              schedule = TimeInterval(2hours))
+                                                              schedule = TimeInterval(1day),
+                                                              overwrite_existing = true)
 
 progress(sim) = @info @sprintf("%s with %s, velocity: %.2e %.2e", prettytime(time(sim)), prettytime(sim.Δt), maximum(sim.model.velocities.u), maximum(sim.model.velocities.v)) 
 
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 
-# pop!(simulation.callbacks, :nan_checker)
-
 run!(simulation)
+
+# Let's visualize the fields!
