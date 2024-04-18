@@ -54,10 +54,10 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
     end
 end
 
-@inline tripolar_stretching_function(φ) = (φ / 145)^2
+@inline tripolar_stretching_function(φ; d = 0.4) = (φ / 90)^2 * d
 
 @inline cosine_a_curve(φ) = - equator_fcurve(φ) 
-@inline cosine_b_curve(φ) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ), 0)
+@inline cosine_b_curve(φ; d = 145) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
 
 @inline zero_c_curve(φ) = 0
 
@@ -100,19 +100,21 @@ A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphe
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
                       southermost_latitude = -85, 
-                      halo        = (4, 4, 4), 
-                      radius      = R_Earth, 
-                      z           = (0, 1),
-                      singularity_longitude = 230,
-                      Nproc       = 10000,
-                      Nnum        = 10000,
-                      a_curve     = cosine_a_curve,
-                      b_curve     = cosine_b_curve,
-                      c_curve     = zero_c_curve)
+                      halo            = (4, 4, 4), 
+                      radius          = R_Earth, 
+                      z               = (0, 1),
+                      poles_latitude  = 45,
+                      Nproc           = 10000,
+                      Nnum            = 10000,
+                      a_curve         = cosine_a_curve,
+                      initial_b_curve = cosine_b_curve,
+                      c_curve         = zero_c_curve)
 
     # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
     # φ has to reach the north pole.`
     # For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
+    final_b    = sqrt((tan((90 - poles_latitude) / 360 * π))^2)
+    b_curve(φ) = initial_b_curve(φ; d = final_b)
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
