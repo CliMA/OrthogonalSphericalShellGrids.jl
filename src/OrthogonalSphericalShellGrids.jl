@@ -15,6 +15,7 @@ using OffsetArrays
 using Oceananigans.Operators
 
 using KernelAbstractions: @kernel, @index
+using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.Grids: generate_coordinate
 
 using Oceananigans.BoundaryConditions
@@ -22,6 +23,7 @@ using Oceananigans.BoundaryConditions
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 
 include("grid_utils.jl")
+include("zipper_boundary_condition.jl")
 include("warped_latitude_longitude.jl")
 include("tripolar_grid.jl")
 
