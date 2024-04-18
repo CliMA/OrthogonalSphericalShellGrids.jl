@@ -30,11 +30,11 @@ Compute the coordinates for an orthogonal spherical shell grid.
 This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
 It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
 """
-@kernel function compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
+@kernel function compute_coords!(jnum, xnum, ynum, λ₀, Δλ, Jeq, Nφ, f_interpolator, g_interpolator)
     i = @index(Global, Linear)
     N = size(xnum, 2)
     @inbounds begin
-        h = (90 - Δλᶠᵃᵃ * i) * 2π / 360
+        h = (λ₀ - Δλ * i) * 2π / 360
         xnum[i, 1], ynum[i, 1] = cos(h), sin(h)
         Δx = xnum[i, 1] / N
         xnum[i, 2] = xnum[i, 1] - Δx
@@ -100,6 +100,7 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                                      halo        = (4, 4, 4), 
                                      radius      = R_Earth, 
                                      z           = (0, 1),
+                                     Nnum        = 10000,
                                      singularity_longitude = 230,
                                      f_curve     = quadratic_f_curve,
                                      g_curve     = quadratic_g_curve)
@@ -118,8 +119,15 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z,         :z, CPU())
 
-    λF = zeros(Nλ+1, Nφ+1)
-    φF = zeros(Nλ+1, Nφ+1)
+    λFF = zeros(Nλ, Nφ+1)
+    φFF = zeros(Nλ, Nφ+1)
+    λFC = zeros(Nλ, Nφ)
+    φFC = zeros(Nλ, Nφ)
+
+    λCF = zeros(Nλ, Nφ+1)
+    φCF = zeros(Nλ, Nφ+1)
+    λCC = zeros(Nλ, Nφ)
+    φCC = zeros(Nλ, Nφ)
 
     # Identify equator line 
     J = Ref(0)
@@ -134,9 +142,6 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     fⱼ = zeros(1:Nφ+1)
     gⱼ = zeros(1:Nφ+1)
 
-    x = zeros(Nλ+1, 1:Nφ+1)
-    y = zeros(Nλ+1, 1:Nφ+1)
-
     # Shif pole upwards
     for j in 1:Nφ+1
         fⱼ[j] = f_curve(φᵃᶠᵃ[j])
@@ -150,79 +155,80 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
     f_interpolator(j) = linear_interpolate(j, fx, fy)
     g_interpolator(j) = linear_interpolate(j, fx, gy)
 
-    @info "I am here!"
+    xnum = zeros(1:Nλ+1, Nnum)
+    ynum = zeros(1:Nλ+1, Nnum)
+    jnum = zeros(1:Nλ+1, Nnum)
 
-    Nsol = 1000
-    xnum = zeros(1:Nλ+1, Nsol)
-    ynum = zeros(1:Nλ+1, Nsol)
-    jnum = zeros(1:Nλ+1, Nsol)
+
+    # X - Face coordinates
+    λ₀ = 90 # ᵒ degrees  
 
     loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator) 
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
 
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ+1, Nφ+1))
-    loop!(λF, φF, x, y, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum)
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λFF, φFF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λFC, φFC, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
 
-    # Rotate the λ direction accordingly
-    for i in 1:Nλ÷2
-        λF[i, :] .-= 90
-        λF[i+Nλ÷2, :] .+= 90
-    end 
+    # X - Face coordinates
+    λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
 
-    # Remove the top of the grid for now 10, then figure out a way
-    # to give a choice for the last great circle size
-    λF = λF[1:end-1, 1:end-10]
-    φF = φF[1:end-1, 1:end-10]
+    loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
 
-    λF = circshift(λF, (1, 0))
-    φF = circshift(φF, (1, 0))
-        
-    Nx = Base.size(λF, 1)
-    Ny = Base.size(λF, 2) - 1
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λCF, φCF, Jeq, Δλᶜᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    
+    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    loop!(λCC, φCC, Jeq, Δλᶜᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
+
+    Nx = Nλ
+    Ny = Nφ
 
     # Helper grid to fill halo metrics
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
+                            
+    lFF = Field((Face, Face, Center), grid)
+    pFF = Field((Face, Face, Center), grid)
 
-    lF = Field((Face, Face, Center), grid)
-    pF = Field((Face, Face, Center), grid)
+    lFC = Field((Face, Center, Center), grid)
+    pFC = Field((Face, Center, Center), grid)
+    
+    lCF = Field((Center, Face, Center), grid)
+    pCF = Field((Center, Face, Center), grid)
 
-    @show Base.size(lF), Base.size(λF)
-    set!(lF, λF)
-    set!(pF, φF)
+    lCC = Field((Center, Center, Center), grid)
+    pCC = Field((Center, Center, Center), grid)
 
-    fill_halo_regions!((lF, pF))
+    set!(lFF, λFF)
+    set!(pFF, φFF)
 
-    λᶠᶠᵃ = lF.data[:, :, 1]
-    φᶠᶠᵃ = pF.data[:, :, 1]
+    set!(lFC, λFC)
+    set!(pFC, φFC)
 
-    λᶠᶠᵃ[:, 0] .= λᶠᶠᵃ[:, 1]
-    φᶠᶠᵃ[:, 0] .= φᶠᶠᵃ[:, 1]
+    set!(lCF, λCF)
+    set!(pCF, φCF)
 
-    λᶠᶠᵃ[:, Ny+1] .= λᶠᶠᵃ[:, Ny]
-    φᶠᶠᵃ[:, Ny+1] .= φᶠᶠᵃ[:, Ny]
+    set!(lCC, λCC)
+    set!(pCC, φCC)
 
-    λᶜᶠᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
-    λᶜᶜᵃ = OffsetArray(zeros(Base.size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
+    fill_halo_regions!((lFF, pFF, lFC, pFC, lCF, pCF, lCC, pCC))
 
-    λᶠᶜᵃ = 0.5 .* OffsetArray(λᶠᶠᵃ.parent[:, 2:end] .+ λᶠᶠᵃ.parent[:, 1:end-1], λᶠᶠᵃ.offsets...);
-    φᶠᶜᵃ = 0.5 .* OffsetArray(φᶠᶠᵃ.parent[:, 2:end] .+ φᶠᶠᵃ.parent[:, 1:end-1], φᶠᶠᵃ.offsets...);
-    φᶜᶠᵃ = 0.5 .* OffsetArray(φᶠᶠᵃ.parent[2:end, :] .+ φᶠᶠᵃ.parent[1:end-1, :], φᶠᶠᵃ.offsets...);
-    φᶜᶜᵃ = 0.5 .* OffsetArray(φᶜᶠᵃ.parent[:, 2:end] .+ φᶜᶠᵃ.parent[:, 1:end-1], φᶜᶠᵃ.offsets...);
+    λᶠᶠᵃ = lFF.data[:, :, 1]
+    φᶠᶠᵃ = pFF.data[:, :, 1]
 
-    # The λᶜᶠᵃ points need to be handled individually (λ jumps between -180 and 180)
-    # and cannot average between them, find a better way to do this
-    for i in 1:Base.size(λᶜᶠᵃ, 1) - 1
-        for j in 1:Base.size(λᶜᶠᵃ, 2) - 1
-            λᶜᶠᵃ.parent[i, j] = if abs(λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) > 100
-                (λᶠᶠᵃ.parent[i+1, j] .- λᶠᶠᵃ.parent[i, j]) / 2
-            else
-                (λᶠᶠᵃ.parent[i+1, j] .+ λᶠᶠᵃ.parent[i, j]) / 2
-            end
-        end
-    end
+    λᶠᶜᵃ = lFC.data[:, :, 1]
+    φᶠᶜᵃ = pFC.data[:, :, 1]
 
-    λᶜᶜᵃ = 0.5 .* OffsetArray(λᶜᶠᵃ.parent[:, 2:end] .+ λᶜᶠᵃ.parent[:, 1:end-1], λᶜᶠᵃ.offsets...);
+    λᶜᶠᵃ = lCF.data[:, :, 1]
+    φᶜᶠᵃ = pCF.data[:, :, 1]
 
+    λᶜᶜᵃ = lCC.data[:, :, 1]
+    φᶜᶜᵃ = pCC.data[:, :, 1]
+
+    # Metrics
     for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
         λ .+= singularity_longitude
         λ .=  convert_to_0_360.(λ)
