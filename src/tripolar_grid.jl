@@ -401,10 +401,10 @@ using Oceananigans.Fields: architecture,
                            FieldBoundaryBuffers
 
 
-sign(::Type{Face},   ::TRype{Face})   = -1
-sign(::Type{Face},   ::TRype{Center}) = -1
-sign(::Type{Center}, ::TRype{Face})   = -1
-sign(::Type{Center}, ::TRype{Center}) = 1
+sign(::Type{Face},   ::Type{Face})   = -1
+sign(::Type{Face},   ::Type{Center}) = -1
+sign(::Type{Center}, ::Type{Face})   = -1
+sign(::Type{Center}, ::Type{Center}) = 1
 
 function Field((LX, LY, LZ)::Tuple, grid::TripolarGrid, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)
