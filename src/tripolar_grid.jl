@@ -193,7 +193,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
-    metrics
+    
     # Face - Center 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
