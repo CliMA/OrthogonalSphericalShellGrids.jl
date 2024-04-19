@@ -61,6 +61,8 @@ end
 
 @inline zero_c_curve(φ) = 0
 
+const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
+
 """
     TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                  size, 
@@ -321,3 +323,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                         
     return grid
 end
+
+import Oceananigans.Grids: x_domain, y_domain
+
+x_domain(grid::TripolarGrid) = CUDA.@allowscalar 0, 360
+y_domain(grid::TripolarGrid) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90

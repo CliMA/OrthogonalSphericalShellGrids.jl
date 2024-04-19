@@ -19,6 +19,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.Grids: generate_coordinate
 
 using Oceananigans.BoundaryConditions
+using CUDA
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 

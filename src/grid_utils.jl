@@ -1,4 +1,3 @@
-
 @inline function linear_interpolate(x₀, x, y) 
     i₁, i₂ = index_binary_search(x, x₀, length(x))
 
