@@ -395,7 +395,8 @@ end
 import Oceananigans.Fields: Field
 using Oceananigans.Fields: architecture, 
                            validate_indices, 
-                           validate_boundary_conditions, 
+                           validate_boundary_conditions,
+                           validate_field_data, 
                            FieldBoundaryConditions, 
                            FieldBoundaryBuffers
 
