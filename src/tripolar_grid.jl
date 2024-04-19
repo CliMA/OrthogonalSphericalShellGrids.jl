@@ -100,15 +100,16 @@ A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphe
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
                       southermost_latitude = -85, 
-                      halo            = (4, 4, 4), 
-                      radius          = R_Earth, 
-                      z               = (0, 1),
-                      poles_latitude  = 45,
-                      Nproc           = 10000, 
-                      Nnum            = 10000, 
-                      a_curve         = cosine_a_curve,
-                      initial_b_curve = cosine_b_curve,
-                      c_curve         = zero_c_curve)
+                      halo                 = (4, 4, 4), 
+                      radius               = R_Earth, 
+                      z                    = (0, 1),
+                      poles_latitude       = 45,
+                      first_pole_longitude = 75,    # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
+                      Nproc                = 10000, 
+                      Nnum                 = 10000, 
+                      a_curve              = cosine_a_curve,
+                      initial_b_curve      = cosine_b_curve,
+                      c_curve              = zero_c_curve)
 
     # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
     # φ has to reach the north pole.`
@@ -192,7 +193,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
-    
+    metrics
     # Face - Center 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
@@ -200,7 +201,13 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Nx = Nλ
     Ny = Nφ
 
-    # Helper grid to fill halo metrics
+    # Metrics
+    for λ in (λFF, λFC, λCF, λCC)
+        λ .+= first_pole_longitude 
+        λ .=  convert_to_0_360.(λ)
+    end
+
+    # Helper grid to fill halo 
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
     default_boundary_conditions = FieldBoundaryConditions(north  = ZipperBoundaryCondition(),
@@ -247,11 +254,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     λᶜᶜᵃ = lCC.data[:, :, 1]
     φᶜᶜᵃ = pCC.data[:, :, 1]
-
-    # Metrics
-    for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
-        λ .=  convert_to_0_360.(λ)
-    end
 
     # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny)

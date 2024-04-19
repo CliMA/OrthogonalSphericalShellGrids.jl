@@ -129,7 +129,7 @@ end
     i, j = @index(Global, NTuple)
 
     @inbounds begin
-        if j < Jeq
+        if j < Jeq + 1
             h = (λ₀ - Δλ * i) * 2π / 360
             x = - f_curve(φ_grid[j]) * cos(h)
             y = - f_curve(φ_grid[j]) * sin(h)
