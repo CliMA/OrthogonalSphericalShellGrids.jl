@@ -8,6 +8,7 @@ using Oceananigans.Grids: R_Earth
 using Oceananigans.Fields: index_binary_search
 using Oceananigans.Architectures: device, on_architecture
 using JLD2
+using JLD2: @save, @load
 
 using Oceananigans.Grids: halo_size, spherical_area_quadrilateral
 using Oceananigans.Grids: lat_lon_to_cartesian
