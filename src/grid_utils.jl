@@ -125,12 +125,12 @@ end
     end
 end
 
-@kernel function _compute_coordinates!(λ, φ, Jeq, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ)
+@kernel function _compute_coordinates!(λ, φ, Jeq, λ₀, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ)
     i, j = @index(Global, NTuple)
 
     @inbounds begin
         if j < Jeq
-            h = (90 - Δλ * i) * 2π / 360
+            h = (λ₀ - Δλ * i) * 2π / 360
             x = - f_curve(φ_grid[j]) * cos(h)
             y = - f_curve(φ_grid[j]) * sin(h)
         else

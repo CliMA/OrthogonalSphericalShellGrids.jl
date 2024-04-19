@@ -104,8 +104,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       radius          = R_Earth, 
                       z               = (0, 1),
                       poles_latitude  = 45,
-                      Nproc           = 10000,
-                      Nnum            = 10000,
+                      Nproc           = 10000, 
+                      Nnum            = 10000, 
                       a_curve         = cosine_a_curve,
                       initial_b_curve = cosine_b_curve,
                       c_curve         = zero_c_curve)
@@ -177,11 +177,11 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFF, φFF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
     # Face - Center 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFC, φFC, Jeq, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
     # X - Center coordinates
     λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
@@ -191,11 +191,11 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     
     # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCF, φCF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
     # Face - Center 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCC, φCC, Jeq, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
     Nx = Nλ
     Ny = Nφ
