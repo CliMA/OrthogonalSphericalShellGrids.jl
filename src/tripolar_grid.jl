@@ -365,3 +365,59 @@ import Oceananigans.Grids: x_domain, y_domain
 
 x_domain(grid::TripolarGrid) = CUDA.@allowscalar 0, 360
 y_domain(grid::TripolarGrid) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90
+
+import Oceananigans.BoundaryConditions: regularize_field_boundary_conditions
+using Oceananigans.BoundaryConditions: FieldBoundaryConditions, 
+                                       assumed_field_location, 
+                                       regularize_boundary_condition
+
+function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
+                                              grid::TripolarGrid,
+                                              field_name::Symbol,
+                                              prognostic_names=nothing)
+
+    loc = assumed_field_location(field_name)
+
+    sign = (field_name == :u || field_name == :v) ? -1 : 1
+
+    west   = regularize_boundary_condition(bcs.west,   grid, loc, 1, LeftBoundary,  prognostic_names)
+    east   = regularize_boundary_condition(bcs.east,   grid, loc, 1, RightBoundary, prognostic_names)
+    south  = regularize_boundary_condition(bcs.south,  grid, loc, 2, LeftBoundary,  prognostic_names)
+    north  = ZipperBoundaryCondition(sign)
+    bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary,  prognostic_names)
+    top    = regularize_boundary_condition(bcs.top,    grid, loc, 3, RightBoundary, prognostic_names)
+
+    immersed = regularize_immersed_boundary_condition(bcs.immersed, grid, loc, field_name, prognostic_names)
+
+    return FieldBoundaryConditions(west, east, south, north, bottom, top, immersed)
+end
+
+import Oceananigans.Fields: Field
+using Oceananigans.Fields: architecture, 
+                           validate_indices, 
+                           validate_boundary_conditions, 
+                           FieldBoundaryConditions, 
+                           FieldBoundaryBuffers
+
+
+sign(::Face, ::Face)     = -1
+sign(::Face, ::Center)   = -1
+sign(::Center, ::Face)   = -1
+sign(::Center, ::Center) = 1
+
+function Field((LX, LY, LZ)::Tuple, grid::TripolarGrid, data, old_bcs, indices::Tuple, op, status)
+    arch = architecture(grid)
+    indices = validate_indices(indices, (LX, LY, LZ), grid)
+    validate_field_data((LX, LY, LZ), data, grid, indices)
+    validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
+    new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
+                                        east = old_bcs.east, 
+                                        south = old_bcs.south,
+                                        north = ZipperBoundaryCondition(sign(LX, LY)),
+                                        top = old_bcs.top,
+                                        bottom = old_bcs.bottom)
+
+    buffers = FieldBoundaryBuffers(grid, data, new_bcs)
+
+    return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
+end

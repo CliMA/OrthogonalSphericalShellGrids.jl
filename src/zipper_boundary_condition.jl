@@ -66,4 +66,3 @@ const FLocation = Union{Tuple{<:Face},   Tuple{<:Face, <:Any},   Tuple{<:Face, <
 
 # v-velocity or similar fields
 @inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::FLocation, args...) = fold_north_face!(i, k, grid, bc.condition, c)
-
