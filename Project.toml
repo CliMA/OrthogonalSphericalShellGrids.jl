@@ -4,9 +4,12 @@ authors = ["Simone Silvestri"]
 version = "0.1.0"
 
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
+FFMPEG = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
@@ -16,8 +19,8 @@ Documenter = "1"
 DocumenterTools = "0.1"
 JLD2 = "0.4"
 KernelAbstractions = "0.9"
-OffsetArrays = "1.13"
 Oceananigans = "0.90"
+OffsetArrays = "1.13"
 julia = "1"
 
 [extras]
