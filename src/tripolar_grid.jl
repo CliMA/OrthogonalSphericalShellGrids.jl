@@ -249,6 +249,11 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     φᶜᶜᵃ = pCC.data[:, :, 1]
 
     # Metrics
+    for λ in (λᶜᶠᵃ, λᶠᶜᵃ, λᶠᶠᵃ, λᶜᶜᵃ)
+        λ .=  convert_to_0_360.(λ)
+    end
+
+    # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny)
     Δxᶠᶜᵃ = zeros(Nx, Ny)
     Δxᶜᶠᵃ = zeros(Nx, Ny)
