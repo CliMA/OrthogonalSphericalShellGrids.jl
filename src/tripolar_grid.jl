@@ -372,6 +372,7 @@ import Oceananigans.BoundaryConditions: regularize_field_boundary_conditions
 using Oceananigans.BoundaryConditions: FieldBoundaryConditions, 
                                        assumed_field_location, 
                                        regularize_boundary_condition,
+                                       regularize_immersed_boundary_condition,
                                        LeftBoundary,
                                        RightBoundary
 
