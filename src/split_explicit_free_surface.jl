@@ -46,4 +46,4 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
                                         free_surface.settings)
 end
 
-@inline tripolar_split_explicit_halos(old_halos, step_halo, grid) = old_halos[1], max(step_halo, old_halos[2])
+@inline tripolar_split_explicit_halos(old_halos, step_halo, grid) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
