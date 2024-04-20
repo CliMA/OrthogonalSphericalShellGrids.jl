@@ -29,23 +29,10 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
 
 @info "Building a model..."; start=time_ns()
 
-u_boundary_conditions = FieldBoundaryConditions(north = ZipperBoundaryCondition(-1))                     
-v_boundary_conditions = FieldBoundaryConditions(north = ZipperBoundaryCondition(-1))                     
-w_boundary_conditions = FieldBoundaryConditions(north = ZipperBoundaryCondition())                     
-η_boundary_conditions = FieldBoundaryConditions(north = ZipperBoundaryCondition())                     
-c_boundary_conditions = FieldBoundaryConditions(north = ZipperBoundaryCondition())                     
-
-boundary_conditions = (; u = u_boundary_conditions, 
-                         v = v_boundary_conditions, 
-                         w = w_boundary_conditions, 
-                         η = η_boundary_conditions, 
-                         c = c_boundary_conditions)
-
 tracer_advection = Oceananigans.Advection.TracerAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
 momentum_advection = WENOVectorInvariant(vorticity_order = 5)
 
 model = HydrostaticFreeSurfaceModel(; grid, free_surface,
-                                      boundary_conditions,
                                       momentum_advection,
                                       tracer_advection,
                                       buoyancy = nothing,

@@ -34,7 +34,7 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
     i′ = Nx - i + 2
     Hy = grid.Hy
     
-    @unroll for j = 1 : Hy
+    for j = 1 : Hy
         @inbounds begin
             c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
         end
@@ -49,7 +49,7 @@ end
     i′ = Nx - i + 1
     Hy = grid.Hy
     
-    @unroll for j = 1 : Hy
+    for j = 1 : Hy
         @inbounds begin
             c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
         end

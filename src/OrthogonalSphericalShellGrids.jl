@@ -28,5 +28,8 @@ include("grid_utils.jl")
 include("zipper_boundary_condition.jl")
 include("warped_latitude_longitude.jl")
 include("tripolar_grid.jl")
+include("load_save_grid.jl")
+include("split_explicit_free_surface.jl")
+include("with_halo.jl")
 
 end
