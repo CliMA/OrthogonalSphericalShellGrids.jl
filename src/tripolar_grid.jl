@@ -409,7 +409,7 @@ sign(::Type{Face},   ::Type{Center}) = -1
 sign(::Type{Center}, ::Type{Face})   = -1
 sign(::Type{Center}, ::Type{Center}) = 1
 
-function Field((LX, LY, LZ)::Tuple, grid::TripolarGrid, data, old_bcs, indices::Tuple, op, status)
+function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
