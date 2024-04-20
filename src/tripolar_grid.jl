@@ -371,7 +371,9 @@ y_domain(grid::TRG) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90
 import Oceananigans.BoundaryConditions: regularize_field_boundary_conditions
 using Oceananigans.BoundaryConditions: FieldBoundaryConditions, 
                                        assumed_field_location, 
-                                       regularize_boundary_condition
+                                       regularize_boundary_condition,
+                                       LeftBoundary,
+                                       RightBoundary
 
 function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
                                               grid::TRG,
