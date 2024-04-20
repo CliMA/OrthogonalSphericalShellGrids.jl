@@ -361,10 +361,12 @@ function TripolarGrid(filename::String;
     return on_architecture(arch, grid)
 end
 
+const TRG = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
+
 import Oceananigans.Grids: x_domain, y_domain
 
-x_domain(grid::TripolarGrid) = CUDA.@allowscalar 0, 360
-y_domain(grid::TripolarGrid) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90
+x_domain(grid::TRG) = CUDA.@allowscalar 0, 360
+y_domain(grid::TRG) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90
 
 import Oceananigans.BoundaryConditions: regularize_field_boundary_conditions
 using Oceananigans.BoundaryConditions: FieldBoundaryConditions, 
@@ -372,7 +374,7 @@ using Oceananigans.BoundaryConditions: FieldBoundaryConditions,
                                        regularize_boundary_condition
 
 function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
-                                              grid::TripolarGrid,
+                                              grid::TRG,
                                               field_name::Symbol,
                                               prognostic_names=nothing)
 
@@ -397,9 +399,7 @@ using Oceananigans.Fields: architecture,
                            validate_indices, 
                            validate_boundary_conditions,
                            validate_field_data, 
-                           FieldBoundaryConditions, 
                            FieldBoundaryBuffers
-
 
 sign(::Type{Face},   ::Type{Face})   = -1
 sign(::Type{Face},   ::Type{Center}) = -1
