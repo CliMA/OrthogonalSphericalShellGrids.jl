@@ -5,7 +5,6 @@ import Oceananigans.BoundaryConditions: bc_str, _fill_north_halo!, apply_y_north
 using Oceananigans.BoundaryConditions: AbstractBoundaryConditionClassification, BoundaryCondition
 import Oceananigans.Fields: validate_boundary_condition_location
 
-# currently only supporting MITgcm "jperio=4" north folds (ORCA 2, 1/4 and 1/12)
 struct Zipper <: AbstractBoundaryConditionClassification end
 
 ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper, sign)
@@ -14,7 +13,6 @@ bc_str(zip::Zipper) = "Zipping boundary"
 
 const ZBC = BoundaryCondition{<:Zipper}
 
-apply_y_north_bc!(Gc, loc, ::ZBC, args...) = nothing
 
 validate_boundary_condition_location(bc::Zipper, loc::Center, side) = 
     side == :north ? nothing : throw(ArgumentError("Cannot specify $side boundary condition $bc on a field at $(loc) (north only)!"))
@@ -22,8 +20,8 @@ validate_boundary_condition_location(bc::Zipper, loc::Center, side) =
 validate_boundary_condition_location(bc::Zipper, loc::Face, side) = 
     side == :north ? nothing : throw(ArgumentError("Cannot specify $side boundary condition $bc on a field at $(loc) (north only)!"))
 
-@inline apply_y_north_bc!(Gc, loc, ::Zipper, args...) = nothing
-
+@inline apply_y_north_bc!(Gc, loc, ::ZBC, args...) = nothing
+    
 #####
 ##### Outer functions for filling halo regions for Zipper boundary conditions.
 #####

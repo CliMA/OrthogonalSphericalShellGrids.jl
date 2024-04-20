@@ -33,7 +33,7 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
         old_halos  = halo_size(grid)
         Nsubsteps  = length(settings.substepping.averaging_weights)
 
-        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1, grid)         
+        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1)         
         extended_grid  = with_halo(extended_halos, grid)
 
         Nze = size(extended_grid, 3)
@@ -46,4 +46,4 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
                                         free_surface.settings)
 end
 
-@inline tripolar_split_explicit_halos(old_halos, step_halo, grid) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
+@inline tripolar_split_explicit_halos(old_halos, step_halo) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
