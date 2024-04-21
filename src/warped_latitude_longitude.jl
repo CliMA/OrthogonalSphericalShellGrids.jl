@@ -100,7 +100,8 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                                      halo        = (4, 4, 4), 
                                      radius      = R_Earth, 
                                      z           = (0, 1),
-                                     Nnum        = 10000,
+                                     Nnum        = 1000,
+                                     Nproc       = 1000,
                                      singularity_longitude = 230,
                                      f_curve     = quadratic_f_curve,
                                      g_curve     = quadratic_g_curve)
@@ -139,50 +140,73 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
 
     Jeq = J[] + 1
 
-    fⱼ = zeros(1:Nφ+1)
-    gⱼ = zeros(1:Nφ+1)
+    fᶠⱼ = zeros(Nproc+1)
+    gᶠⱼ = zeros(Nproc+1)
+    
+    fᶜⱼ = zeros(Nproc+1)
+    gᶜⱼ = zeros(Nproc+1)
+    
+    xnum = zeros(Nλ+1, Nnum)
+    ynum = zeros(Nλ+1, Nnum)
+    jnum = zeros(Nλ+1, Nnum)
 
-    # Shif pole upwards
-    for j in 1:Nφ+1
-        fⱼ[j] = f_curve(φᵃᶠᵃ[j])
-        gⱼ[j] = g_curve(φᵃᶠᵃ[j]) 
+    φproc = range(φᵃᶠᵃ[1], φᵃᶠᵃ[Nφ+1], length = Nproc + 1) 
+    
+    # calculate the eccentricities of the ellipse
+    for (j, φ) in enumerate(φproc)
+        fᶠⱼ[j] = f_curve(φ)
+        gᶠⱼ[j] = g_curve(φ) 
     end
 
-    fy = fⱼ
-    gy = gⱼ
-    fx = Float64.(collect(1:Nφ+1))
+    fᶠx = Float64.(collect(0:Nproc) ./ Nproc * Nφ .+ 1)
+    
+    f_face_interp(j) = linear_interpolate(j, fᶠx, fᶠⱼ)
+    g_face_interp(j) = linear_interpolate(j, fᶠx, gᶠⱼ)
+    
+    φproc = range(φᵃᶜᵃ[1], φᵃᶜᵃ[Nφ+1], length = Nproc + 1) 
+    
+    # calculate the eccentricities of the ellipse
+    for (j, φ) in enumerate(φproc)
+        fᶜⱼ[j] = f_curve(φ)
+        gᶜⱼ[j] = g_curve(φ) 
+    end
 
-    f_interpolator(j) = linear_interpolate(j, fx, fy)
-    g_interpolator(j) = linear_interpolate(j, fx, gy)
+    f_center_interp(j) = linear_interpolate(j, fᶠx, fᶜⱼ)
+    g_center_interp(j) = linear_interpolate(j, fᶠx, gᶜⱼ)
 
-    xnum = zeros(1:Nλ+1, Nnum)
-    ynum = zeros(1:Nλ+1, Nnum)
-    jnum = zeros(1:Nλ+1, Nnum)
-
+    xnum = zeros(Nλ+1, Nnum)
+    ynum = zeros(Nλ+1, Nnum)
+    jnum = zeros(Nλ+1, Nnum)
 
     # X - Face coordinates
     λ₀ = 90 # ᵒ degrees  
 
     loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, Jeq, Nφ, f_face_interp, g_face_interp)
 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
-    loop!(λFF, φFF, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
     
+    loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, Jeq, Nφ, f_center_interp, g_center_interp)
+
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFC, φFC, Jeq, Δλᶠᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
 
     # X - Face coordinates
     λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
 
     loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, Jeq, Nφ, f_interpolator, g_interpolator)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, Jeq, Nφ, f_face_interp, g_face_interp)
 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
-    loop!(λCF, φCF, Jeq, Δλᶜᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, f_curve, xnum, ynum, jnum, Nλ)
     
+    loop! = compute_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, Jeq, Nφ, f_center_interp, g_center_interp)
+
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCC, φCC, Jeq, Δλᶜᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
+    loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, f_curve, xnum, ynum, jnum, Nλ)
 
     Nx = Nλ
     Ny = Nφ
@@ -291,11 +315,11 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                     Nx, Ny, Nz,
                     Hx, Hy, Hz,
                     convert(eltype(radius), Lz),
-                    arch_array(arch,  λᶜᶜᵃ), arch_array(arch,  λᶠᶜᵃ), arch_array(arch,  λᶜᶠᵃ), arch_array(arch,  λᶠᶠᵃ),
-                    arch_array(arch,  φᶜᶜᵃ), arch_array(arch,  φᶠᶜᵃ), arch_array(arch,  φᶜᶠᵃ), arch_array(arch,  φᶠᶠᵃ), arch_array(arch, zᵃᵃᶜ),  arch_array(arch, zᵃᵃᶠ),
-                    arch_array(arch, Δxᶜᶜᵃ), arch_array(arch, Δxᶠᶜᵃ), arch_array(arch, Δxᶜᶠᵃ), arch_array(arch, Δxᶠᶠᵃ),
-                    arch_array(arch, Δyᶜᶜᵃ), arch_array(arch, Δyᶜᶠᵃ), arch_array(arch, Δyᶠᶜᵃ), arch_array(arch, Δyᶠᶠᵃ), arch_array(arch, Δzᵃᵃᶜ), arch_array(arch, Δzᵃᵃᶠ),
-                    arch_array(arch, Azᶜᶜᵃ), arch_array(arch, Azᶠᶜᵃ), arch_array(arch, Azᶜᶠᵃ), arch_array(arch, Azᶠᶠᵃ),
+                    on_architecture(arch,  λᶜᶜᵃ), on_architecture(arch,  λᶠᶜᵃ), on_architecture(arch,  λᶜᶠᵃ), on_architecture(arch,  λᶠᶠᵃ),
+                    on_architecture(arch,  φᶜᶜᵃ), on_architecture(arch,  φᶠᶜᵃ), on_architecture(arch,  φᶜᶠᵃ), on_architecture(arch,  φᶠᶠᵃ), on_architecture(arch, zᵃᵃᶜ),  on_architecture(arch, zᵃᵃᶠ),
+                    on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
+                    on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
+                    on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
                     radius, WarpedLatitudeLongitude())
                                                         
     return grid

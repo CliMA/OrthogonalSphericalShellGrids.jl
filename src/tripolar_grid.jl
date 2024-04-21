@@ -108,7 +108,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
     default_boundary_conditions = FieldBoundaryConditions(north  = ZipperBoundaryCondition(),
-                                                          south  = FluxBoundaryCondition(nothing),
+                                                          south  = nothing, # The south should be `continued`
                                                           west   = Oceananigans.PeriodicBoundaryCondition(),
                                                           east   = Oceananigans.PeriodicBoundaryCondition(),
                                                           top    = nothing,
@@ -227,6 +227,28 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Hx, Hy, Hz = halo
 
+    latitude_longitude_grid = LatitudeLongitudeGrid(; size, 
+                                                      latitude, 
+                                                      longitude, 
+                                                      z,
+                                                      halo, 
+                                                      radius)
+
+    continue_south!(Δxᶠᶠᵃ, latitude_longitude_grid.Δxᶠᶠᵃ)
+    continue_south!(Δxᶠᶜᵃ, latitude_longitude_grid.Δxᶠᶜᵃ)
+    continue_south!(Δxᶜᶠᵃ, latitude_longitude_grid.Δxᶜᶠᵃ)
+    continue_south!(Δxᶜᶜᵃ, latitude_longitude_grid.Δxᶜᶜᵃ)
+    
+    continue_south!(Δyᶠᶠᵃ, latitude_longitude_grid.Δyᶠᶜᵃ)
+    continue_south!(Δyᶠᶜᵃ, latitude_longitude_grid.Δyᶠᶜᵃ)
+    continue_south!(Δyᶜᶠᵃ, latitude_longitude_grid.Δyᶜᶠᵃ)
+    continue_south!(Δyᶜᶜᵃ, latitude_longitude_grid.Δyᶜᶠᵃ)
+
+    continue_south!(Azᶠᶠᵃ, latitude_longitude_grid.Azᶠᶠᵃ)
+    continue_south!(Azᶠᶜᵃ, latitude_longitude_grid.Azᶠᶜᵃ)
+    continue_south!(Azᶜᶠᵃ, latitude_longitude_grid.Azᶜᶠᵃ)
+    continue_south!(Azᶜᶜᵃ, latitude_longitude_grid.Azᶜᶜᵃ)
+
     # Final grid with correct metrics
     grid = OrthogonalSphericalShellGrid{Periodic, RightConnected, Bounded}(arch,
                     Nx, Ny, Nz,
@@ -242,7 +264,15 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     return grid
 end
 
+function continue_south!(new_metric, lat_lon_metric)
+    Hx, Hy = new_metric.offsets
+    Nx, Ny = size(new_metric)
+    for i in -Hx:Nx-Hx, j in -Hy:1
+        new_metric[i, j] = lat_lon_metric[i, j]
+    end
 
+    return nothing
+end
 
 const TRG = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
