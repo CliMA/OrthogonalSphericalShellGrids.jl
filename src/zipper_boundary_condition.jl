@@ -9,10 +9,9 @@ struct Zipper <: AbstractBoundaryConditionClassification end
 
 ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper, sign)
 
-bc_str(zip::Zipper) = "Zipping boundary"
-
 const ZBC = BoundaryCondition{<:Zipper}
 
+bc_str(zip::ZBC) = "Zipper"
 
 validate_boundary_condition_location(bc::Zipper, loc::Center, side) = 
     side == :north ? nothing : throw(ArgumentError("Cannot specify $side boundary condition $bc on a field at $(loc) (north only)!"))
@@ -30,6 +29,7 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 2
+    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
@@ -45,6 +45,7 @@ end
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
+    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy

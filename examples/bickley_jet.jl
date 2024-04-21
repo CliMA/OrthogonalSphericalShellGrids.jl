@@ -3,13 +3,17 @@ using Oceananigans.Units
 using Printf
 using OrthogonalSphericalShellGrids
 
-underlying_grid = TripolarGrid(size = (360, 180, 1), halo = (5, 5, 5))
+Nx = 360
+Ny = 180
+Nb = 10
 
-bottom_height = zeros(360, 180)
+underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
 
-bottom_height[1:10, end-10:end]       .= 1
-bottom_height[end-10:end, end-10:end] .= 1
-bottom_height[170:190, end-10:end]   .= 1
+bottom_height = zeros(Nx, Ny)
+
+bottom_height[1:Nb+1, end-Nb:end]                .= 1
+bottom_height[end-Nb:end, end-Nb:end]            .= 1
+bottom_height[(Nx-Nb)÷2:(Nx+Nb)÷2+1, end-Nb:end] .= 1
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
 Ψ(y) = - tanh(y) * 10
@@ -77,6 +81,6 @@ progress(sim) = @info @sprintf("%s with %s, velocity: %.2e %.2e", prettytime(tim
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 
-run!(simulation)
+# run!(simulation)
 
 # Let's visualize the fields!

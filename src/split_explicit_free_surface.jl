@@ -20,10 +20,12 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     Nx, Ny, _ = size(grid)
     Hx, Hy, _ = halo_size(grid)
 
-    kernel_parameters = (Nx, Ny + Hy - 1)
+    kernel_parameters = KernelParameters((Nx, Ny + Hy - 1), (0, 0))
     
     return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
 end
+
+@inline tripolar_split_explicit_halos(old_halos, step_halo) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
 
 # Internal function for HydrostaticFreeSurfaceModel
 function materialize_free_surface(free_surface::SplitExplicitFreeSurface, velocities, grid::TRG)
@@ -45,5 +47,3 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
                                         free_surface.gravitational_acceleration,
                                         free_surface.settings)
 end
-
-@inline tripolar_split_explicit_halos(old_halos, step_halo) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]

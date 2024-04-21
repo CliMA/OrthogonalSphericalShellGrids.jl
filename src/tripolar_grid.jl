@@ -101,7 +101,7 @@ A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphe
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
-                      southermost_latitude = -85, 
+                      southermost_latitude = -82, 
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
@@ -125,7 +125,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
-    Lφ, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT, Bounded(),  Nφ, Hφ, latitude,  :φ, CPU())
+    Lφ, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT, Periodic(), Nφ, Hφ, latitude,  :φ, CPU())
     Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z,         :z, CPU())
 
@@ -149,54 +149,82 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Jeq = J[] + 1
 
-    aⱼ = zeros(1:Nproc+1)
-    bⱼ = zeros(1:Nproc+1)
-    cⱼ = zeros(1:Nproc+1)
+    aᶠⱼ = zeros(1:Nproc+1)
+    bᶠⱼ = zeros(1:Nproc+1)
+    cᶠⱼ = zeros(1:Nproc+1)
 
-    φproc = range(southermost_latitude, 90, length = Nproc) 
-    
-    # calculate the eccentricities of the ellipse
-    for (j, φ) in enumerate(φproc)
-        aⱼ[j] = a_curve(φ)
-        bⱼ[j] = b_curve(φ) 
-        cⱼ[j] = c_curve(φ) 
-    end
-
-    fx = Float64.(collect(1:Nproc) ./ Nproc * (Nφ + 1))
-
-    a_interpolator(j) = linear_interpolate(j, fx, aⱼ)
-    b_interpolator(j) = linear_interpolate(j, fx, bⱼ)
-    c_interpolator(j) = linear_interpolate(j, fx, cⱼ)
+    aᶜⱼ = zeros(1:Nproc+1)
+    bᶜⱼ = zeros(1:Nproc+1)
+    cᶜⱼ = zeros(1:Nproc+1)
 
     xnum = zeros(1:Nλ+1, Nnum)
     ynum = zeros(1:Nλ+1, Nnum)
     jnum = zeros(1:Nλ+1, Nnum)
 
+    φproc = range(φᵃᶠᵃ[1], φᵃᶠᵃ[Nφ+1], length = Nproc) 
+    
+    # calculate the eccentricities of the ellipse
+    for (j, φ) in enumerate(φproc)
+        aᶠⱼ[j] = a_curve(φ)
+        bᶠⱼ[j] = b_curve(φ) 
+        cᶠⱼ[j] = c_curve(φ) 
+    end
+
+    fᶠx = Float64.(collect(0:Nproc) ./ Nproc * Nφ .+ 1)
+    @show extrema(fᶠx)
+    
+    a_face_interp(j) = linear_interpolate(j, fᶠx, aᶠⱼ)
+    b_face_interp(j) = linear_interpolate(j, fᶠx, bᶠⱼ)
+    c_face_interp(j) = linear_interpolate(j, fᶠx, cᶠⱼ)
+
+    φproc = range(φᵃᶜᵃ[1], φᵃᶜᵃ[Nφ], length = Nproc) 
+    
+    # calculate the eccentricities of the ellipse
+    for (j, φ) in enumerate(φproc)
+        aᶜⱼ[j] = a_curve(φ)
+        bᶜⱼ[j] = b_curve(φ) 
+        cᶜⱼ[j] = c_curve(φ) 
+    end
+
+    fᶜx = Float64.(collect(0:Nproc) ./ Nproc * (Nφ - 1) .+ 1)
+
+    @show extrema(fᶜx)
+
+    a_center_interp(j) = linear_interpolate(j, fᶜx, aᶜⱼ)
+    b_center_interp(j) = linear_interpolate(j, fᶜx, bᶜⱼ)
+    c_center_interp(j) = linear_interpolate(j, fᶜx, cᶜⱼ)
+
     # X - Face coordinates
     λ₀ = 90 # ᵒ degrees  
 
+    # Face - Face coordinates
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp, c_face_interp) 
 
-    # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
-    # Face - Center 
+    # Face - Center coordinates
+    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
+
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
     # X - Center coordinates
     λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
 
+    # Center - Face 
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_interpolator, b_interpolator, c_interpolator) 
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp, c_face_interp) 
     
-    # Face - Face 
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
-    # Face - Center 
+    # Face - Center coordinates
+    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
+    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
+
     loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
     loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
     
@@ -218,7 +246,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                           east   = Oceananigans.PeriodicBoundaryCondition(),
                                                           top    = nothing,
                                                           bottom = nothing)
-                                                          
+                                                        
     lFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
     pFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
 
@@ -243,7 +271,15 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     set!(lCC, λCC)
     set!(pCC, φCC)
 
-    fill_halo_regions!((lFF, pFF, lFC, pFC, lCF, pCF, lCC, pCC))
+    fill_halo_regions!(lFF)
+    fill_halo_regions!(lCF)
+    fill_halo_regions!(lFC)
+    fill_halo_regions!(lCC)
+    
+    fill_halo_regions!(pFF)
+    fill_halo_regions!(pCF)
+    fill_halo_regions!(pFC)
+    fill_halo_regions!(pCC)
 
     λᶠᶠᵃ = lFF.data[:, :, 1]
     φᶠᶠᵃ = pFF.data[:, :, 1]
@@ -289,20 +325,34 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     CC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
 
     # Fill all periodic halos
-    set!(FF, Δxᶠᶠᵃ); set!(CF, Δxᶜᶠᵃ); set!(FC, Δxᶠᶜᵃ); set!(CC, Δxᶜᶜᵃ); 
-    fill_halo_regions!((FF, CF, FC, CC))
+    set!(FF, Δxᶠᶠᵃ); 
+    set!(CF, Δxᶜᶠᵃ); 
+    set!(FC, Δxᶠᶜᵃ); 
+    set!(CC, Δxᶜᶜᵃ); 
+    fill_halo_regions!(FF)
+    fill_halo_regions!(CF)
+    fill_halo_regions!(FC)
+    fill_halo_regions!(CC)
     Δxᶠᶠᵃ = FF.data[:, :, 1]; 
     Δxᶜᶠᵃ = CF.data[:, :, 1]; 
     Δxᶠᶜᵃ = FC.data[:, :, 1]; 
     Δxᶜᶜᵃ = CC.data[:, :, 1]; 
+
     set!(FF, Δyᶠᶠᵃ); set!(CF, Δyᶜᶠᵃ); set!(FC, Δyᶠᶜᵃ); set!(CC, Δyᶜᶜᵃ); 
-    fill_halo_regions!((FF, CF, FC, CC))
+    fill_halo_regions!(FF)
+    fill_halo_regions!(CF)
+    fill_halo_regions!(FC)
+    fill_halo_regions!(CC)
     Δyᶠᶠᵃ = FF.data[:, :, 1]; 
     Δyᶜᶠᵃ = CF.data[:, :, 1]; 
     Δyᶠᶜᵃ = FC.data[:, :, 1]; 
     Δyᶜᶜᵃ = CC.data[:, :, 1]; 
+
     set!(FF, Azᶠᶠᵃ); set!(CF, Azᶜᶠᵃ); set!(FC, Azᶠᶜᵃ); set!(CC, Azᶜᶜᵃ); 
-    fill_halo_regions!((FF, CF, FC, CC))
+    fill_halo_regions!(FF)
+    fill_halo_regions!(CF)
+    fill_halo_regions!(FC)
+    fill_halo_regions!(CC)
     Azᶠᶠᵃ = FF.data[:, :, 1]; 
     Azᶜᶠᵃ = CF.data[:, :, 1]; 
     Azᶠᶜᵃ = FC.data[:, :, 1]; 
@@ -310,6 +360,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Hx, Hy, Hz = halo
 
+    # Final grid with correct metrics
     grid = OrthogonalSphericalShellGrid{Periodic, RightConnected, Bounded}(arch,
                     Nx, Ny, Nz,
                     Hx, Hy, Hz,
@@ -320,9 +371,11 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                     on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
                     on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
                     radius, Tripolar())
-                                                        
+             
     return grid
 end
+
+
 
 const TRG = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
 
@@ -378,14 +431,26 @@ function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
+    default_zipper = ZipperBoundaryCondition(sign(LX, LY))
+
+    north_bc = old_bcs.north isa ZBC ? old_bcs.north : default_zipper
+    
     new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
                                         east = old_bcs.east, 
                                         south = old_bcs.south,
-                                        north = ZipperBoundaryCondition(sign(LX, LY)),
+                                        north = north_bc,
                                         top = old_bcs.top,
                                         bottom = old_bcs.bottom)
 
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
 
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
+end
+
+import Oceananigans.Fields: tupled_fill_halo_regions!
+
+function tupled_fill_halo_regions!(full_fields, grid::TRG, args...; kwargs...)
+    for field in full_fields
+        fill_halo_regions!(field, args...; kwargs...)
+    end
 end
