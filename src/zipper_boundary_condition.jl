@@ -25,7 +25,7 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
 ##### Outer functions for filling halo regions for Zipper boundary conditions.
 #####
 
-@inline function fold_north_face!(i, k, grid, sign, c)
+@inline function fold_north_face_face!(i, k, grid, sign, c)
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 2
@@ -41,7 +41,23 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
     return nothing
 end
 
-@inline function fold_north_center!(i, k, grid, sign, c)
+@inline function fold_north_face_center!(i, k, grid, sign, c)
+    Nx, Ny, _ = size(grid)
+    
+    i′ = Nx - i + 2
+    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
+    Hy = grid.Hy
+    
+    for j = 1 : Hy
+        @inbounds begin
+            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+        end
+    end
+
+    return nothing
+end
+
+@inline function fold_north_center_face!(i, k, grid, sign, c)
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
@@ -57,11 +73,35 @@ end
     return nothing
 end
 
-const CLocation = Union{Tuple{<:Center}, Tuple{<:Center, <:Any}, Tuple{<:Center, <:Any, <:Any}} 
-const FLocation = Union{Tuple{<:Face},   Tuple{<:Face, <:Any},   Tuple{<:Face, <:Any, <:Any}}
+@inline function fold_north_center_center!(i, k, grid, sign, c)
+    Nx, Ny, _ = size(grid)
+    
+    i′ = Nx - i + 1
+    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
+    Hy = grid.Hy
+    
+    for j = 1 : Hy
+        @inbounds begin
+            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+        end
+    end
+
+    return nothing
+end
+
+const CCLocation = Tuple{<:Center, <:Center, <:Any} 
+const FCLocation = Tuple{<:Face,   <:Center, <:Any} 
+const CFLocation = Tuple{<:Center, <:Face,   <:Any} 
+const FFLocation = Tuple{<:Face,   <:Face,   <:Any} 
+
+# tracers or similar fields
+@inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::CCLocation, args...) = fold_north_center_center!(i, k, grid, bc.condition, c)
 
 # u-velocity or similar fields
-@inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::CLocation, args...) = fold_north_center!(i, k, grid, bc.condition, c)
+@inline _fill_north_halo!(i, k, grid, u, bc::ZBC, ::FCLocation, args...) = fold_north_face_center!(i, k, grid, bc.condition, u)
 
 # v-velocity or similar fields
-@inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::FLocation, args...) = fold_north_face!(i, k, grid, bc.condition, c)
+@inline _fill_north_halo!(i, k, grid, v, bc::ZBC, ::CFLocation, args...) = fold_north_center_face!(i, k, grid, bc.condition, v)
+
+# vorticity or similar fields
+@inline _fill_north_halo!(i, k, grid, ζ, bc::ZBC, ::FFLocation, args...) = fold_north_face_face!(i, k, grid, bc.condition, ζ)

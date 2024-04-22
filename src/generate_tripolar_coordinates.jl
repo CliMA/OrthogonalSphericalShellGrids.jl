@@ -147,15 +147,14 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
     # Face - Center coordinates
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
-    xnum[:, end] .= 0
- 
+
     loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
     loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
     
     # X - Center coordinates
     λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
 
-    # Center - Face 
+    # Center - Face  
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp, c_face_interp) 
 
@@ -165,18 +164,18 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
     # Face - Center coordinates
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
-    xnum[:, end] .= 0
- 
+
     loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
     loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
     
-    φFC[:, Nφ] .= 180 .- φFC[:, Nφ-1] 
-    φCC[:, Nφ] .= 180 .- φCC[:, Nφ-1] 
+    λmFC = deepcopy(λFC)
+    λmCC = deepcopy(λCC) 
 
-    λFC[:, Nφ] .= - circshift(λFC[:, Nφ-1], Nλ÷2)
-    λCC[:, Nφ] .= - circshift(λCC[:, Nφ-1], Nλ÷2)
-    
-    # Metrics
+    for i in 1:Nλ÷2
+        λFC[i, Nφ] = λmFC[Nλ - i + 1, Nφ]
+        λCC[i, Nφ] = λmCC[Nλ - i + 1, Nφ]
+    end
+
     for λ in (λFF, λFC, λCF, λCC)
         λ .+= first_pole_longitude 
         λ .=  convert_to_0_360.(λ)
