@@ -264,10 +264,30 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     return grid
 end
 
-function continue_south!(new_metric, lat_lon_metric)
+function continue_south!(new_metric, lat_lon_metric::Number)
     Hx, Hy = new_metric.offsets
     Nx, Ny = size(new_metric)
-    for i in -Hx:Nx-Hx, j in -Hy:1
+    for i in Hx+1:Nx+Hx, j in Hy+1:1
+        new_metric[i, j] = lat_lon_metric
+    end
+
+    return nothing
+end
+
+function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 1})
+    Hx, Hy = new_metric.offsets
+    Nx, Ny = size(new_metric)
+    for i in Hx+1:Nx+Hx, j in Hy+1:1
+        new_metric[i, j] = lat_lon_metric[j]
+    end
+
+    return nothing
+end
+
+function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 2})
+    Hx, Hy = - new_metric.offsets
+    Nx, Ny = size(new_metric)
+    for i in Hx+1:Nx+Hx, j in Hy+1:1
         new_metric[i, j] = lat_lon_metric[i, j]
     end
 

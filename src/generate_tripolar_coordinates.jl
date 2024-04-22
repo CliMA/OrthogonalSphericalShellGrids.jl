@@ -171,7 +171,7 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
 
     # Metrics
     for λ in (λFF, λFC, λCF, λCC)
-        # λ .+= first_pole_longitude 
+        λ .+= first_pole_longitude 
         λ .=  convert_to_0_360.(λ)
     end
 

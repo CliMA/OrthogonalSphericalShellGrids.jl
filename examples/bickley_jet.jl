@@ -5,7 +5,7 @@ using OrthogonalSphericalShellGrids
 
 Nx = 360
 Ny = 180
-Nb = 10
+Nb = 20
 
 underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
 
@@ -69,7 +69,7 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)
 
-simulation = Simulation(model, Δt=Δt, stop_time=2000days)
+simulation = Simulation(model, Δt=Δt, stop_time=15hours)
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "orca025_bickley.jld2", 
