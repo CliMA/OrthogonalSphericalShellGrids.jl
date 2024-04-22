@@ -12,10 +12,10 @@ TODO: put here information about the grid, i.e.:
 """
 struct Tripolar end
 
-@inline tripolar_stretching_function(φ; d = 0.4) = (φ / 90)^2 * d
+@inline tripolar_stretching_function(φ; d = 0.4) = (φ / 90)^4 * d
 
-@inline cosine_a_curve(φ) = - equator_fcurve(φ) 
-@inline cosine_b_curve(φ; d = 145) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
+@inline cosine_a_curve(φ)          = - equator_fcurve(φ) 
+@inline cosine_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
 
 @inline zero_c_curve(φ) = 0
 
@@ -63,7 +63,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
-                      poles_latitude       = 40,
+                      poles_latitude       = 45,
                       first_pole_longitude = 75,    # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
                       Nproc                = 1000, 
                       Nnum                 = 1000, 
@@ -86,15 +86,15 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # the Z coordinate is the same as for the other grids
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z, :z, CPU())
 
-    λFF = zeros(Nλ, Nφ)
-    φFF = zeros(Nλ, Nφ)
-    λFC = zeros(Nλ, Nφ)
-    φFC = zeros(Nλ, Nφ)
+    λFF = zeros(Nλ, Nφ+1)
+    φFF = zeros(Nλ, Nφ+1)
+    λFC = zeros(Nλ, Nφ+1)
+    φFC = zeros(Nλ, Nφ+1)
 
-    λCF = zeros(Nλ, Nφ)
-    φCF = zeros(Nλ, Nφ)
-    λCC = zeros(Nλ, Nφ)
-    φCC = zeros(Nλ, Nφ)
+    λCF = zeros(Nλ, Nφ+1)
+    φCF = zeros(Nλ, Nφ+1)
+    λCC = zeros(Nλ, Nφ+1)
+    φCC = zeros(Nλ, Nφ+1)
 
     generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC;
                                FT, size, halo, latitude, longitude,
@@ -126,17 +126,17 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     lCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
     pCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
 
-    set!(lFF, λFF)
-    set!(pFF, φFF)
+    set!(lFF, λFF[:, 1:Ny])
+    set!(pFF, φFF[:, 1:Ny])
 
-    set!(lFC, λFC)
-    set!(pFC, φFC)
+    set!(lFC, λFC[:, 1:Ny])
+    set!(pFC, φFC[:, 1:Ny])
 
-    set!(lCF, λCF)
-    set!(pCF, φCF)
+    set!(lCF, λCF[:, 1:Ny])
+    set!(pCF, φCF[:, 1:Ny])
 
-    set!(lCC, λCC)
-    set!(pCC, φCC)
+    set!(lCC, λCC[:, 1:Ny])
+    set!(pCC, φCC[:, 1:Ny])
 
     fill_halo_regions!(lFF)
     fill_halo_regions!(lCF)

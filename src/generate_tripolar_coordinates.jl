@@ -38,11 +38,10 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
             jnum[i, n-1] = bisection_root_find(func, Jeq-1.0, Nφ+1-Δj, Δj)
             xnum[i, n] = xnum[i, n-1] - Δx
 
-            # Adams-Bashforth 2 integrator to find the perpendicular to the circle
-            Gnew = ynum[i, n-1] * a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n-1]
-            # Gold = ynum[i, n-2] * a_interpolator(jnum[i, n-2])^2 / b_interpolator(jnum[i, n-2])^2 / xnum[i, n-2]
+            # Euler forward integrator to find the perpendicular to the circle
+            G = ynum[i, n-1] * a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n-1]
 
-            ynum[i, n] = ynum[i, n-1] - Δx * Gnew # - 0.6 * Gold)
+            ynum[i, n] = ynum[i, n-1] - Δx * G
         end
         @show i
     end
@@ -95,19 +94,21 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
 
     Jeq = J[] + 1
 
-    aᶠⱼ = zeros(Nproc+1)
-    bᶠⱼ = zeros(Nproc+1)
-    cᶠⱼ = zeros(Nproc+1)
+    aᶠⱼ = zeros(Nproc)
+    bᶠⱼ = zeros(Nproc)
+    cᶠⱼ = zeros(Nproc)
 
-    aᶜⱼ = zeros(Nproc+1)
-    bᶜⱼ = zeros(Nproc+1)
-    cᶜⱼ = zeros(Nproc+1)
+    aᶜⱼ = zeros(Nproc)
+    bᶜⱼ = zeros(Nproc)
+    cᶜⱼ = zeros(Nproc)
 
     xnum = zeros(Nλ+1, Nnum)
     ynum = zeros(Nλ+1, Nnum)
     jnum = zeros(Nλ+1, Nnum)
 
-    φproc = range(φᵃᶠᵃ[1], φᵃᶠᵃ[Nφ+1], length = Nproc + 1) 
+    fx = Float64.(collect(0:Nproc-1) ./ (Nproc-1) * Nφ .+ 1)
+
+    φproc = range(φᵃᶠᵃ[1], 90 - Δφᵃᶠᵃ / 2, length = Nproc) 
     
     # calculate the eccentricities of the ellipse
     for (j, φ) in enumerate(φproc)
@@ -115,14 +116,12 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
         bᶠⱼ[j] = b_curve(φ) 
         cᶠⱼ[j] = c_curve(φ) 
     end
-
-    fᶠx = Float64.(collect(0:Nproc) ./ Nproc * Nφ .+ 1)
     
-    a_face_interp(j) = linear_interpolate(j, fᶠx, aᶠⱼ)
-    b_face_interp(j) = linear_interpolate(j, fᶠx, bᶠⱼ)
-    c_face_interp(j) = linear_interpolate(j, fᶠx, cᶠⱼ)
+    a_face_interp(j) = linear_interpolate(j, fx, aᶠⱼ)
+    b_face_interp(j) = linear_interpolate(j, fx, bᶠⱼ)
+    c_face_interp(j) = linear_interpolate(j, fx, cᶠⱼ)
 
-    φproc = range(φᵃᶜᵃ[1], φᵃᶜᵃ[Nφ+1], length = Nproc + 1) 
+    φproc = range(φᵃᶜᵃ[1], 90, length = Nproc) 
     
     # calculate the eccentricities of the ellipse
     for (j, φ) in enumerate(φproc)
@@ -131,9 +130,9 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
         cᶜⱼ[j] = c_curve(φ) 
     end
 
-    a_center_interp(j) = linear_interpolate(j, fᶠx, aᶜⱼ)
-    b_center_interp(j) = linear_interpolate(j, fᶠx, bᶜⱼ)
-    c_center_interp(j) = linear_interpolate(j, fᶠx, cᶜⱼ)
+    a_center_interp(j) = linear_interpolate(j, fx, aᶜⱼ)
+    b_center_interp(j) = linear_interpolate(j, fx, bᶜⱼ)
+    c_center_interp(j) = linear_interpolate(j, fx, cᶜⱼ)
 
     # X - Face coordinates
     λ₀ = 90 # ᵒ degrees  
@@ -142,15 +141,16 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp, c_face_interp) 
 
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ, Face())
     
     # Face - Center coordinates
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
-
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
+    xnum[:, end] .= 0
+ 
+    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
     
     # X - Center coordinates
     λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
@@ -158,17 +158,24 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
     # Center - Face 
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp, c_face_interp) 
-    
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ)
+
+    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ, Face())
     
     # Face - Center coordinates
     loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
     loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp, c_center_interp) 
+    xnum[:, end] .= 0
+ 
+    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ+1))
+    loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
+    
+    φFC[:, Nφ] .= 180 .- φFC[:, Nφ-1] 
+    φCC[:, Nφ] .= 180 .- φCC[:, Nφ-1] 
 
-    loop! = _compute_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ)
-
+    λFC[:, Nφ] .= - circshift(λFC[:, Nφ-1], Nλ÷2)
+    λCC[:, Nφ] .= - circshift(λCC[:, Nφ-1], Nλ÷2)
+    
     # Metrics
     for λ in (λFF, λFC, λCF, λCC)
         λ .+= first_pole_longitude 
@@ -176,4 +183,10 @@ function generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φ
     end
 
     return nothing
+end
+
+import Oceananigans.Grids: lat_lon_to_cartesian, lat_lon_to_x, lat_lon_to_y, lat_lon_to_z
+
+function lat_lon_to_cartesian(lat, lon, radius)
+    return [lat_lon_to_x(lat, lon, radius), lat_lon_to_y(lat, lon, radius), lat_lon_to_z(lat, lon, radius)]
 end

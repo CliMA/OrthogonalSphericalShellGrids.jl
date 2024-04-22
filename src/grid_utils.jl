@@ -143,3 +143,26 @@ end
         λ[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
     end
 end
+
+@kernel function _compute_tripolar_coordinates!(λ, φ, Jeq, λ₀, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ, loc)
+    i, j = @index(Global, NTuple)
+
+    @inbounds begin
+        if j < Jeq + 1
+            h = (λ₀ - Δλ * i) * 2π / 360
+            x = - f_curve(φ_grid[j]) * cos(h)
+            y = - f_curve(φ_grid[j]) * sin(h)
+        elseif j == size(λ, 2) - 1 && loc == Center()
+            x = 0
+            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
+        else
+            x = linear_interpolate(j, jnum[i, :], xnum[i, :])
+            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
+        end
+        
+        λ[i, j] = - 180 / π * ifelse(x == 0, ifelse(y == 0, 0, - atan(Base.sign(y) * Inf)), atan(y / x))
+        φ[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) 
+
+        λ[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
+    end
+end

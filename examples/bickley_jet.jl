@@ -5,7 +5,7 @@ using OrthogonalSphericalShellGrids
 
 Nx = 360
 Ny = 180
-Nb = 20
+Nb = 30
 
 underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
 
