@@ -58,6 +58,8 @@ end
 @inline quadratic_f_curve(φ)   =   equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 @inline quadratic_g_curve(φ)   = - equator_fcurve(φ) + ifelse(φ > 0, stretching_function(φ), 0)
 
+const WarpedLatitudeLongitudeGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:WarpedLatitudeLongitude, Arch}
+
 """
     WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64; 
                                 size, 
@@ -324,3 +326,5 @@ function WarpedLatitudeLongitudeGrid(arch = CPU(), FT::DataType = Float64;
                                                         
     return grid
 end
+
+const WRG = Union{WarpedLatitudeLongitudeGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:WarpedLatitudeLongitudeGrid}}
