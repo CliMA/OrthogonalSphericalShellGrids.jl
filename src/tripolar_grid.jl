@@ -308,7 +308,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
 
     loc = assumed_field_location(field_name)
 
-    sign = 1
+    sign = field_name == :u || field_name == :v ? -1 : 1
 
     west   = regularize_boundary_condition(bcs.west,   grid, loc, 1, LeftBoundary,  prognostic_names)
     east   = regularize_boundary_condition(bcs.east,   grid, loc, 1, RightBoundary, prognostic_names)
@@ -331,8 +331,8 @@ using Oceananigans.Fields: architecture,
 
 sign(LX, LY) = 1
 sign(::Type{Face},   ::Type{Face})   = 1
-sign(::Type{Face},   ::Type{Center}) = 1 # u-velocity type
-sign(::Type{Center}, ::Type{Face})   = 1 # v-velocity type
+sign(::Type{Face},   ::Type{Center}) = - 1 # u-velocity type
+sign(::Type{Center}, ::Type{Face})   = - 1 # v-velocity type
 sign(::Type{Center}, ::Type{Center}) = 1
 
 function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)

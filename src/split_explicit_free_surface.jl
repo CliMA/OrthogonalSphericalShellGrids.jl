@@ -5,12 +5,30 @@ import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surfac
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: augmented_kernel_offsets, augmented_kernel_size
 
 function SplitExplicitAuxiliaryFields(grid::TRG)
-    
+
     Gᵁ = Field((Face,   Center, Nothing), grid)
     Gⱽ = Field((Center, Face,   Nothing), grid)
+
+    bcs_fc = FieldBoundaryConditions(
+            top    = nothing,
+            bottom = nothing,
+            west   = Gᵁ.boundary_conditions.west,
+            east   = Gᵁ.boundary_conditions.east,         
+            south  = Gᵁ.boundary_conditions.south,
+            north  = ZipperBoundaryCondition()
+    )
     
-    Hᶠᶜ = Field((Face,   Center, Nothing), grid)
-    Hᶜᶠ = Field((Center, Face,   Nothing), grid)
+    bcs_cf = FieldBoundaryConditions(
+            top    = nothing,
+            bottom = nothing,
+            west   = Gⱽ.boundary_conditions.west,
+            east   = Gⱽ.boundary_conditions.east,         
+            south  = Gⱽ.boundary_conditions.south,
+            north  = ZipperBoundaryCondition()
+    )
+    
+    Hᶠᶜ = Field((Face,   Center, Nothing), grid; boundary_conditions = bcs_fc)
+    Hᶜᶠ = Field((Center, Face,   Nothing), grid; boundary_conditions = bcs_cf)
 
     calculate_column_height!(Hᶠᶜ, (Face, Center, Center))
     calculate_column_height!(Hᶜᶠ, (Center, Face, Center))
