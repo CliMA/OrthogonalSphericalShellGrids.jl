@@ -12,10 +12,10 @@ TODO: put here information about the grid, i.e.:
 """
 struct Tripolar end
 
-@inline tripolar_stretching_function(φ; d = 0.4) = (φ / 90)^4 * d
+@inline tripolar_stretching_function(φ; d = 0.4) = d / exp(-1) * exp( - 1 / ((pi / 4 -  ((90 - φ) / 180) * pi/2)/pi*4))
 
-@inline cosine_a_curve(φ)          = - equator_fcurve(φ) 
-@inline cosine_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
+@inline tan_a_curve(φ)          = - equator_fcurve(φ) 
+@inline exp_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
 
 @inline zero_c_curve(φ) = 0
 
@@ -67,9 +67,12 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       first_pole_longitude = 75,    # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
                       Nproc                = 1000, 
                       Nnum                 = 1000, 
-                      a_curve              = cosine_a_curve,
-                      initial_b_curve      = cosine_b_curve,
+                      a_curve              = tan_a_curve,
+                      initial_b_curve      = exp_b_curve,
                       c_curve              = zero_c_curve)
+
+    latitude  = (southermost_latitude, 90)
+    longitude = (-180, 180) 
 
     # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
     # φ has to reach the north pole.`
@@ -77,33 +80,20 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     final_b    = sqrt((tan((90 - poles_latitude) / 360 * π))^2)
     b_curve(φ) = initial_b_curve(φ; d = final_b)
 
-    latitude  = (southermost_latitude, 90)
-    longitude = (-180, 180) 
-    
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
     # the Z coordinate is the same as for the other grids
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z, :z, CPU())
 
-    λFF = zeros(Nλ, Nφ+1)
-    φFF = zeros(Nλ, Nφ+1)
-    λFC = zeros(Nλ, Nφ+1)
-    φFC = zeros(Nλ, Nφ+1)
-
-    λCF = zeros(Nλ, Nφ+1)
-    φCF = zeros(Nλ, Nφ+1)
-    λCC = zeros(Nλ, Nφ+1)
-    φCC = zeros(Nλ, Nφ+1)
-
-    generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC;
-                               FT, size, halo, latitude, longitude,
-                               Nproc, Nnum, a_curve, b_curve, c_curve,
-                               first_pole_longitude)
+    λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC = generate_tripolar_metrics!(Nλ, Nφ, Hλ, Hφ;
+                                                                        FT, latitude, longitude,
+                                                                        Nproc, Nnum, a_curve, b_curve,
+                                                                        first_pole_longitude)
 
     Nx = Nλ
     Ny = Nφ
-    
+     
     # Helper grid to fill halo 
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
@@ -338,10 +328,10 @@ using Oceananigans.Fields: architecture,
                            FieldBoundaryBuffers
 
 sign(LX, LY) = 1
-sign(::Type{Face},   ::Type{Face})   = -1
-sign(::Type{Face},   ::Type{Center}) = -1
-sign(::Type{Center}, ::Type{Face})   = -1
-sign(::Type{Center}, ::Type{Center}) = 1
+sign(::Type{Face},   ::Type{Face})   =  1
+sign(::Type{Face},   ::Type{Center}) = -1 # u-velocity type
+sign(::Type{Center}, ::Type{Face})   = -1 # v-velocity type
+sign(::Type{Center}, ::Type{Center}) =  1
 
 function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)

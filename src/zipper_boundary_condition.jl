@@ -28,13 +28,14 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
 @inline function fold_north_face_face!(i, k, grid, sign, c)
     Nx, Ny, _ = size(grid)
     
-    i′ = Nx - i + 2
+    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
+    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
     i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
         @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
+            c[i, Ny + j, k] = s * c[i′, Ny - j + 1, k] 
         end
     end
 
@@ -44,13 +45,14 @@ end
 @inline function fold_north_face_center!(i, k, grid, sign, c)
     Nx, Ny, _ = size(grid)
     
-    i′ = Nx - i + 2
+    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
+    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
     i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
         @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+            c[i, Ny + j, k] = s * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
         end
     end
 
@@ -61,7 +63,6 @@ end
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
-    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
@@ -77,7 +78,6 @@ end
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
-    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy

@@ -5,7 +5,7 @@ using OrthogonalSphericalShellGrids
 
 Nx = 360
 Ny = 180
-Nb = 30
+Nb = 40
 
 underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
 
@@ -13,7 +13,11 @@ bottom_height = zeros(Nx, Ny)
 
 bottom_height[1:Nb+1, end-Nb:end]                .= 1
 bottom_height[end-Nb:end, end-Nb:end]            .= 1
-bottom_height[(Nx-Nb)÷2:(Nx+Nb)÷2+1, end-Nb:end] .= 1
+bottom_height[(Nx-2Nb)÷2:(Nx+2Nb)÷2, end-Nb:end] .= 1
+
+@show size(underlying_grid)
+@show size(bottom_height)
+
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
 Ψ(y) = - tanh(y) * 10
@@ -69,7 +73,7 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)
 
-simulation = Simulation(model, Δt=Δt, stop_time=15hours)
+simulation = Simulation(model, Δt=Δt, stop_time=500days)
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "orca025_bickley.jld2", 
@@ -81,6 +85,6 @@ progress(sim) = @info @sprintf("%s with %s, velocity: %.2e %.2e", prettytime(tim
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 
-# run!(simulation)
+run!(simulation)
 
 # Let's visualize the fields!
