@@ -83,6 +83,9 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
+    Nproc = max(2Nφ, Nproc) # Always have at least 2 interpolation points per grid point
+    Nnum  = max(2Nφ, Nnum)  # Always have at least 2 interpolation points per grid point
+
     # the Z coordinate is the same as for the other grids
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z, :z, CPU())
 

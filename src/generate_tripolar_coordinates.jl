@@ -49,7 +49,7 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
         
         Δx = xnum[i, 1] / N
 
-        myfunc(x) = (xnum[i, 1] / a_interpolator(x)) ^2 + (ynum[i, 1] / b_interpolator(x))^2 - 1 
+        myfunc(j) = (xnum[i, 1] / a_interpolator(j)) ^2 + (ynum[i, 1] / b_interpolator(j))^2 - 1 
         jnum[i, 1] = bisection_root_find(myfunc, Jeq-1.0, Nφ+1-Δj, Δj)
         
         for n in 2:N
