@@ -68,8 +68,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       Nproc                = 1000, 
                       Nnum                 = 1000, 
                       a_curve              = tan_a_curve,
-                      initial_b_curve      = exp_b_curve,
-                      c_curve              = zero_c_curve)
+                      initial_b_curve      = exp_b_curve)
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
@@ -84,7 +83,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Hλ, Hφ, Hz = halo
 
     Nproc = max(2Nφ, Nproc) # Always have at least 2 interpolation points per grid point
-    Nnum  = max(2Nφ, Nnum)  # Always have at least 2 interpolation points per grid point
+    Nnum  = max(5Nφ, Nnum)  # Always have at least 2 interpolation points per grid point
 
     # the Z coordinate is the same as for the other grids
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z, :z, CPU())
@@ -309,7 +308,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
 
     loc = assumed_field_location(field_name)
 
-    sign = (field_name == :u || field_name == :v) ? -1 : 1
+    sign = 1
 
     west   = regularize_boundary_condition(bcs.west,   grid, loc, 1, LeftBoundary,  prognostic_names)
     east   = regularize_boundary_condition(bcs.east,   grid, loc, 1, RightBoundary, prognostic_names)
@@ -331,10 +330,10 @@ using Oceananigans.Fields: architecture,
                            FieldBoundaryBuffers
 
 sign(LX, LY) = 1
-sign(::Type{Face},   ::Type{Face})   =  1
-sign(::Type{Face},   ::Type{Center}) = -1 # u-velocity type
-sign(::Type{Center}, ::Type{Face})   = -1 # v-velocity type
-sign(::Type{Center}, ::Type{Center}) =  1
+sign(::Type{Face},   ::Type{Face})   = 1
+sign(::Type{Face},   ::Type{Center}) = 1 # u-velocity type
+sign(::Type{Center}, ::Type{Face})   = 1 # v-velocity type
+sign(::Type{Center}, ::Type{Center}) = 1
 
 function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)
