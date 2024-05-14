@@ -26,7 +26,7 @@
         # Make sure out poles are aligned with the 
         # longitude we want them to be at. The poles now are at -180 and 0,
         # we want them to be at first_pole_longitude and first_pole_longitude + 180
-        # λ2D[i, j] += first_pole_longitude 
-        # λ2D[i, j]  = convert_to_0_360(λ2D[i, j])
+        λ2D[i, j] += first_pole_longitude 
+        λ2D[i, j]  = convert_to_0_360(λ2D[i, j])
     end
 end
