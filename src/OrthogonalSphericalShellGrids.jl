@@ -1,6 +1,6 @@
 module OrthogonalSphericalShellGrids
 
-export WarpedLatitudeLongitudeGrid, TripolarGrid, ZipperBoundaryCondition
+export TripolarGrid, ZipperBoundaryCondition
 
 using Oceananigans
 using Oceananigans.Grids: R_Earth
@@ -26,10 +26,8 @@ using CUDA
 
 include("grid_utils.jl")
 include("zipper_boundary_condition.jl")
-include("warped_latitude_longitude.jl")
 include("generate_tripolar_coordinates.jl")
 include("tripolar_grid.jl")
-include("load_save_grid.jl")
 include("split_explicit_free_surface.jl")
 include("with_halo.jl")
 

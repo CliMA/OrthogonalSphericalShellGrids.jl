@@ -118,17 +118,17 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     lCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
     pCC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
 
-    set!(lFF, λFF[:, 1:Ny])
-    set!(pFF, φFF[:, 1:Ny])
+    set!(lFF, λFF)
+    set!(pFF, φFF)
 
-    set!(lFC, λFC[:, 1:Ny])
-    set!(pFC, φFC[:, 1:Ny])
+    set!(lFC, λFC)
+    set!(pFC, φFC)
 
-    set!(lCF, λCF[:, 1:Ny])
-    set!(pCF, φCF[:, 1:Ny])
+    set!(lCF, λCF)
+    set!(pCF, φCF)
 
-    set!(lCC, λCC[:, 1:Ny])
-    set!(pCC, φCC[:, 1:Ny])
+    set!(lCC, λCC)
+    set!(pCC, φCC)
 
     fill_halo_regions!(lFF)
     fill_halo_regions!(lCF)
@@ -184,38 +184,44 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     CC = Field((Center, Center, Center), grid; boundary_conditions = default_boundary_conditions)
 
     # Fill all periodic halos
-    set!(FF, Δxᶠᶠᵃ); 
-    set!(CF, Δxᶜᶠᵃ); 
-    set!(FC, Δxᶠᶜᵃ); 
-    set!(CC, Δxᶜᶜᵃ); 
+    set!(FF, Δxᶠᶠᵃ) 
+    set!(CF, Δxᶜᶠᵃ) 
+    set!(FC, Δxᶠᶜᵃ) 
+    set!(CC, Δxᶜᶜᵃ) 
     fill_halo_regions!(FF)
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Δxᶠᶠᵃ = FF.data[:, :, 1]; 
-    Δxᶜᶠᵃ = CF.data[:, :, 1]; 
-    Δxᶠᶜᵃ = FC.data[:, :, 1]; 
-    Δxᶜᶜᵃ = CC.data[:, :, 1]; 
+    Δxᶠᶠᵃ = dropdims(FF.data, dims=3)
+    Δxᶜᶠᵃ = dropdims(CF.data, dims=3)
+    Δxᶠᶜᵃ = dropdims(FC.data, dims=3)
+    Δxᶜᶜᵃ = dropdims(CC.data, dims=3)
 
-    set!(FF, Δyᶠᶠᵃ); set!(CF, Δyᶜᶠᵃ); set!(FC, Δyᶠᶜᵃ); set!(CC, Δyᶜᶜᵃ); 
+    set!(FF, Δyᶠᶠᵃ)
+    set!(CF, Δyᶜᶠᵃ)
+    set!(FC, Δyᶠᶜᵃ) 
+    set!(CC, Δyᶜᶜᵃ)
     fill_halo_regions!(FF)
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Δyᶠᶠᵃ = FF.data[:, :, 1]; 
-    Δyᶜᶠᵃ = CF.data[:, :, 1]; 
-    Δyᶠᶜᵃ = FC.data[:, :, 1]; 
-    Δyᶜᶜᵃ = CC.data[:, :, 1]; 
+    Δyᶠᶠᵃ = dropdims(FF.data, dims=3)
+    Δyᶜᶠᵃ = dropdims(CF.data, dims=3)
+    Δyᶠᶜᵃ = dropdims(FC.data, dims=3)
+    Δyᶜᶜᵃ = dropdims(CC.data, dims=3)
 
-    set!(FF, Azᶠᶠᵃ); set!(CF, Azᶜᶠᵃ); set!(FC, Azᶠᶜᵃ); set!(CC, Azᶜᶜᵃ); 
+    set!(FF, Azᶠᶠᵃ) 
+    set!(CF, Azᶜᶠᵃ)
+    set!(FC, Azᶠᶜᵃ)
+    set!(CC, Azᶜᶜᵃ)
     fill_halo_regions!(FF)
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Azᶠᶠᵃ = FF.data[:, :, 1]; 
-    Azᶜᶠᵃ = CF.data[:, :, 1]; 
-    Azᶠᶜᵃ = FC.data[:, :, 1]; 
-    Azᶜᶜᵃ = CC.data[:, :, 1]; 
+    Azᶠᶠᵃ = dropdims(FF.data, dims=3)
+    Azᶜᶠᵃ = dropdims(CF.data, dims=3)
+    Azᶠᶜᵃ = dropdims(FC.data, dims=3)
+    Azᶜᶜᵃ = dropdims(CC.data, dims=3)
 
     Hx, Hy, Hz = halo
 
