@@ -12,13 +12,6 @@ TODO: put here information about the grid, i.e.:
 """
 struct Tripolar end
 
-@inline tripolar_stretching_function(φ; d = 0.4) = d / exp(-1) * exp( - 1 / ((pi / 4 -  ((90 - φ) / 180) * pi/2)/pi*4))
-
-@inline tan_a_curve(φ)          = - equator_fcurve(φ) 
-@inline exp_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
-
-@inline zero_c_curve(φ) = 0
-
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
 """
@@ -59,43 +52,50 @@ A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphe
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
-                      southermost_latitude = -82, 
+                      southermost_latitude = -80, 
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
                       poles_latitude       = 45,
-                      first_pole_longitude = 75,    # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
-                      Nproc                = 1000, 
-                      Nnum                 = 1000, 
-                      a_curve              = tan_a_curve,
-                      initial_b_curve      = exp_b_curve)
+                      first_pole_longitude = 75) # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
-
-    # For now, only for domains Periodic in λ (from -180 to 180 degrees) and Bounded in φ.
-    # φ has to reach the north pole.`
-    # For all the rest we can easily use a `LatitudeLongitudeGrid` without warping
-    final_b    = sqrt((tan((90 - poles_latitude) / 360 * π))^2)
-    b_curve(φ) = initial_b_curve(φ; d = final_b)
+        
+    focal_distance = tand((90 - poles_latitude) / 2)
 
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
 
-    Nproc = max(2Nφ, Nproc) # Always have at least 2 interpolation points per grid point
-    Nnum  = max(5Nφ, Nnum)  # Always have at least 2 interpolation points per grid point
+    # the λ and Z coordinate is the same as for the other grids,
+    # but for the φ coordinate we need to remove one point at the north
+    # because the the north pole is a point on `Center`, not on `Face`s...
+    Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ,   Hλ, longitude, :longitude, CPU())
+    Ly, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT,  Bounded(), Nφ-1, Hφ, latitude,  :latitude,  CPU())
+    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz,   Hz, z,         :z,         CPU())
 
-    # the Z coordinate is the same as for the other grids
-    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, Bounded(),  Nz, Hz, z, :z, CPU())
+    # Start with the NH stereographic projection
+    λFF = zeros(Nλ, Nφ)
+    φFF = zeros(Nλ, Nφ)
+    λFC = zeros(Nλ, Nφ)
+    φFC = zeros(Nλ, Nφ)
 
-    λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC = generate_tripolar_metrics!(Nλ, Nφ, Hλ, Hφ;
-                                                                        FT, latitude, longitude,
-                                                                        Nproc, Nnum, a_curve, b_curve,
-                                                                        first_pole_longitude)
+    λCF = zeros(Nλ, Nφ)
+    φCF = zeros(Nλ, Nφ)
+    λCC = zeros(Nλ, Nφ)
+    φCC = zeros(Nλ, Nφ)
+
+    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
+    
+    loop!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
+          λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
+          first_pole_longitude,
+          focal_distance, Nλ)
 
     Nx = Nλ
     Ny = Nφ
-     
+            
+    # return λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC
     # Helper grid to fill halo 
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
