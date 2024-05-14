@@ -1,29 +1,17 @@
-"""
-    struct WarpedLatitudeLongitude
-
-A struct representing a warped latitude-longitude grid.
-
-TODO: put here information about the grid, i.e.: 
-
-1) north pole latitude and longitude
-2) functions used to construct the Grid
-3) Numerical discretization used to construct the Grid
-4) Last great circle size in degrees
-"""
+""" a structure to represent a tripolar grid on a spherical shell """
 struct Tripolar end
 
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
 """
     TripolarGrid(arch = CPU(), FT::DataType = Float64; 
-                 size, 
-                 southermost_latitude = -75, 
-                 halo        = (4, 4, 4), 
-                 radius      = R_Earth, 
-                 z           = (0, 1),
-                 singularity_longitude = 230,
-                 f_curve     = quadratic_f_curve,
-                 g_curve     = quadratic_g_curve)
+                      size, 
+                      southermost_latitude = -80, 
+                      halo                 = (4, 4, 4), 
+                      radius               = R_Earth, 
+                      z                    = (0, 1),
+                      north_poles_latitude = 45,
+                      first_pole_longitude = 75)
 
 Constructs a tripolar grid on a spherical shell.
 
@@ -41,9 +29,9 @@ Keyword Arguments
 - `halo`: The halo size in the (longitude, latitude, z) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
 - `z`: The z-coordinate range of the grid. Default is (0, 1).
-- `singularity_longitude`: The longitude at which the grid has a singularity. Default is 230.
-- `f_curve`: The function to compute the f-curve for the grid. Default is `quadratic_f_curve`.
-- `g_curve`: The function to compute the g-curve for the grid. Default is `quadratic_g_curve`.
+- `first_pole_longitude`: The longitude of the first ``north'' singularity. 
+                          The second singularity will be located at `first_pole_longitude + 180ᵒ`.
+- `north_poles_latitude`: The latitude of the ``north'' singularities.
 
 Returns
 ========
@@ -56,13 +44,13 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
-                      poles_latitude       = 45,
+                      north_poles_latitude = 45,
                       first_pole_longitude = 75) # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
 
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
         
-    focal_distance = tand((90 - poles_latitude) / 2)
+    focal_distance = tand((90 - north_poles_latitude) / 2)
 
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
@@ -97,7 +85,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
             
     # return λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC
     # Helper grid to fill halo 
-    grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, RightConnected, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
+    grid = RectilinearGrid(; size = (Nx, Ny), halo = (Hλ, Hφ), topology = (Periodic, RightConnected, Flat), x = (0, 1), y = (0, 1))
 
     default_boundary_conditions = FieldBoundaryConditions(north  = ZipperBoundaryCondition(),
                                                           south  = nothing, # The south should be `continued`
@@ -140,17 +128,17 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(pFC)
     fill_halo_regions!(pCC)
 
-    λᶠᶠᵃ = lFF.data[:, :, 1]
-    φᶠᶠᵃ = pFF.data[:, :, 1]
+    λᶠᶠᵃ = dropdims(lFF.data, dims=3)
+    φᶠᶠᵃ = dropdims(pFF.data, dims=3)
 
-    λᶠᶜᵃ = lFC.data[:, :, 1]
-    φᶠᶜᵃ = pFC.data[:, :, 1]
+    λᶠᶜᵃ = dropdims(lFC.data, dims=3)
+    φᶠᶜᵃ = dropdims(pFC.data, dims=3)
 
-    λᶜᶠᵃ = lCF.data[:, :, 1]
-    φᶜᶠᵃ = pCF.data[:, :, 1]
+    λᶜᶠᵃ = dropdims(lCF.data, dims=3)
+    φᶜᶠᵃ = dropdims(pCF.data, dims=3)
 
-    λᶜᶜᵃ = lCC.data[:, :, 1]
-    φᶜᶜᵃ = pCC.data[:, :, 1]
+    λᶜᶜᵃ = dropdims(lCC.data, dims=3)
+    φᶜᶜᵃ = dropdims(pCC.data, dims=3)
 
     # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny)
@@ -232,6 +220,9 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                       halo, 
                                                       radius)
 
+    # Continue the metrics to the south with the LatitudeLongitudeGrid
+    # metrics (probably we don't even need to do this, since the tripolar grid should
+    # terminate below Antartica, but it's better to be safe)
     continue_south!(Δxᶠᶠᵃ, latitude_longitude_grid.Δxᶠᶠᵃ)
     continue_south!(Δxᶠᶜᵃ, latitude_longitude_grid.Δxᶠᶜᵃ)
     continue_south!(Δxᶜᶠᵃ, latitude_longitude_grid.Δxᶜᶠᵃ)
@@ -293,79 +284,3 @@ function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 2})
 end
 
 const TRG = Union{TripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:TripolarGrid}}
-
-import Oceananigans.Grids: x_domain, y_domain
-
-x_domain(grid::TRG) = CUDA.@allowscalar 0, 360
-y_domain(grid::TRG) = CUDA.@allowscalar minimum(grid.φᶠᶠᵃ), 90
-
-import Oceananigans.BoundaryConditions: regularize_field_boundary_conditions
-using Oceananigans.BoundaryConditions: FieldBoundaryConditions, 
-                                       assumed_field_location, 
-                                       regularize_boundary_condition,
-                                       regularize_immersed_boundary_condition,
-                                       LeftBoundary,
-                                       RightBoundary
-
-function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
-                                              grid::TRG,
-                                              field_name::Symbol,
-                                              prognostic_names=nothing)
-
-    loc = assumed_field_location(field_name)
-
-    sign = field_name == :u || field_name == :v ? -1 : 1
-
-    west   = regularize_boundary_condition(bcs.west,   grid, loc, 1, LeftBoundary,  prognostic_names)
-    east   = regularize_boundary_condition(bcs.east,   grid, loc, 1, RightBoundary, prognostic_names)
-    south  = regularize_boundary_condition(bcs.south,  grid, loc, 2, LeftBoundary,  prognostic_names)
-    north  = ZipperBoundaryCondition(sign)
-    bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary,  prognostic_names)
-    top    = regularize_boundary_condition(bcs.top,    grid, loc, 3, RightBoundary, prognostic_names)
-
-    immersed = regularize_immersed_boundary_condition(bcs.immersed, grid, loc, field_name, prognostic_names)
-
-    return FieldBoundaryConditions(west, east, south, north, bottom, top, immersed)
-end
-
-import Oceananigans.Fields: Field
-using Oceananigans.Fields: architecture, 
-                           validate_indices, 
-                           validate_boundary_conditions,
-                           validate_field_data, 
-                           FieldBoundaryBuffers
-
-sign(LX, LY) = 1
-sign(::Type{Face},   ::Type{Face})   = 1
-sign(::Type{Face},   ::Type{Center}) = - 1 # u-velocity type
-sign(::Type{Center}, ::Type{Face})   = - 1 # v-velocity type
-sign(::Type{Center}, ::Type{Center}) = 1
-
-function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)
-    arch = architecture(grid)
-    indices = validate_indices(indices, (LX, LY, LZ), grid)
-    validate_field_data((LX, LY, LZ), data, grid, indices)
-    validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
-    default_zipper = ZipperBoundaryCondition(sign(LX, LY))
-
-    north_bc = old_bcs.north isa ZBC ? old_bcs.north : default_zipper
-    
-    new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
-                                        east = old_bcs.east, 
-                                        south = old_bcs.south,
-                                        north = north_bc,
-                                        top = old_bcs.top,
-                                        bottom = old_bcs.bottom)
-
-    buffers = FieldBoundaryBuffers(grid, data, new_bcs)
-
-    return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
-end
-
-import Oceananigans.Fields: tupled_fill_halo_regions!
-
-function tupled_fill_halo_regions!(full_fields, grid::TRG, args...; kwargs...)
-    for field in full_fields
-        fill_halo_regions!(field, args...; kwargs...)
-    end
-end

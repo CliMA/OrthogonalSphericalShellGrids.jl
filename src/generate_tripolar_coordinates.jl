@@ -47,14 +47,14 @@ for which it is possible to retrive the longitude and latitude by:
     λ2Ds = (λFF,  λFC,  λCF,  λCC)
     φ2Ds = (φFF,  φFC,  φCF,  φCC)
     λ1Ds = (λᶠᵃᵃ, λᶠᵃᵃ, λᶜᵃᵃ, λᶜᵃᵃ)
-    φ1Ds = (φᵃᶜᵃ, φᵃᶜᵃ, φᵃᶜᵃ, φᵃᶜᵃ)
+    φ1Ds = (φᵃᶜᵃ, φᵃᶠᵃ, φᵃᶜᵃ, φᵃᶠᵃ)
 
     for (λ2D, φ2D, λ1D, φ1D) in zip(λ2Ds, φ2Ds, λ1Ds, φ1Ds)
         ψ = asinh(tand((90 - φ1D[j]) / 2) / focal_distance)
         x = focal_distance * sind(λ1D[i]) * cosh(ψ)
         y = focal_distance * cosd(λ1D[i]) * sinh(ψ)
 
-        λ2D[i, j] = - 180 / π * atan(y / x)
+        λ2D[i, j] = - 180 / π * ifelse(x == 0, ifelse(y == 0, 0, atan(Inf)), atan(y / x))
         φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
 
         @show x, y, λ2D[i, j], φ2D[i, j]
