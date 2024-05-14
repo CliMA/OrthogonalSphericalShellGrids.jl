@@ -53,21 +53,40 @@ It uses a secant root finding method to find the value of `jnum` and an Adams-Ba
         jnum[i, 1] = bisection_root_find(myfunc, Jeq-1.0, Nφ+1-Δj, Δj)
         
         for n in 2:N
-            # Great circles
-
-            func(j) = (xnum[i, n-1] / a_interpolator(j)) ^2 + (ynum[i, n-1] / b_interpolator(j))^2 - 1 
-            jnum[i, n-1] = bisection_root_find(func, Jeq-1.0, Nφ+1.0, Δj)
-
-            # Semi-Implicit integrator
-            G¹ = a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n-1]
-            
-            ynum[i, n] = ynum[i, n-1] / (1 + G¹ * Δx) 
             xnum[i, n] = xnum[i, n-1] - Δx
+            ynum[i, n] = ynum[i, n-1]
+            
+            iteration = 0
+            yₒ = 1e10
+
+            # Implicit integrator through a fixed point iteration
+            while norm(ynum[i, n] - yₒ) > 1e-12 && iteration < 1000
+                yₒ = ynum[i, n]
+                iteration+=1
+
+                # Great circles
+                func(j) = (xnum[i, n] / a_interpolator(j)) ^2 + (ynum[i, n] / b_interpolator(j))^2 - 1 
+                jnum[i, n-1] = bisection_root_find(func, Jeq-1.0, Nφ+1.0, Δj)
+
+                # Semi-Implicit integrator
+
+                G¹ = a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n]
+                
+                ynum[i, n] = ynum[i, n-1] / (1 + G¹ * Δx) 
+            end
+
         end
 
         @show i
     end
 end
+
+@inline tripolar_stretching_function(φ; d = 0.4) = d / exp(-1) * exp( - 1 / ((pi / 4 -  ((90 - φ) / 180) * pi/2)/pi*4))
+
+@inline tan_a_curve(φ)          = - equator_fcurve(φ) 
+@inline exp_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
+
+@inline zero_c_curve(φ) = 0
 
 """
     generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC;
