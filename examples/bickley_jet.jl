@@ -62,13 +62,6 @@ cᵢ(x, y, z) = C(dr(y)*8, 167.0)
 
 set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
-# Δx = minimum_xspacing(grid)
-# Δy = minimum_yspacing(grid)
-
-# Δ = 1 / sqrt(1 / Δx^2 + 1 / Δy^2)
-# c = sqrt(model.free_surface.gravitational_acceleration)
-# Δt = 0.3 * Δ / c
-
 Δt = 1minutes
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)

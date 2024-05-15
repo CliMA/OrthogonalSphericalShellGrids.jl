@@ -6,9 +6,8 @@ api = Any[
 ]
 
 makedocs(
-    sitename = "WenoNeverworld",
+    sitename = "OrthogonalSphericalShellGrids",
     format = Documenter.HTML(),
-#     modules = [WenoNeverworld]
     pages=[
         "Home" => "index.md",
         "API" => api,
@@ -27,4 +26,4 @@ makedocs(
 # Documenter can also automatically deploy documentation to gh-pages.
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
-deploydocs(repo = "github.com/simone-silvestri/WenoNeverworld.jl.git", push_preview = true)
+deploydocs(repo = "github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl.git", push_preview = true)

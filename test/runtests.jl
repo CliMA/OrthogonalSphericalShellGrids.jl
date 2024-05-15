@@ -2,5 +2,9 @@ using OrthogonalSphericalShellGrids
 using Test
 
 @testset "OrthogonalSphericalShellGrids.jl" begin
-    # Write your tests here.
+    # We probably do not need any unit tests.
+
+    # Test the grid?
+
+    # Test boundary conditions?    
 end
