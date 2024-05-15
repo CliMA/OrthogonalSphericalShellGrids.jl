@@ -2,21 +2,27 @@ using Oceananigans
 using Oceananigans.Units
 using Printf
 using OrthogonalSphericalShellGrids
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 
 Nx = 360
 Ny = 180
 Nb = 40
 
-underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
+first_pole_longitude = λ¹ₚ = 45
+north_poles_latitude = φₚ  = 25
 
-bottom_height = zeros(Nx, Ny)
+λ²ₚ = λ¹ₚ + 180
 
-bottom_height[1:Nb+1, end-Nb:end]                .= 1
-bottom_height[end-Nb:end, end-Nb:end]            .= 1
-bottom_height[(Nx-2Nb)÷2:(Nx+2Nb)÷2, end-Nb:end] .= 1
+# Build a tripolar grid with singularities at
+# (0, -90), (45, 25), (225, 25)
+underlying_grid = TripolarGrid(; size = (Nx, Ny, 1), 
+                                 halo = (5, 5, 5), 
+                                 first_pole_longitude,
+                                 north_poles_latitude)
 
-@show size(underlying_grid)
-@show size(bottom_height)
+# We need a bottom height field that ``masks'' the singularities
+bottom_height(λ, φ) = ((abs(λ - λ¹ₚ) < 5) & (abs(φₚ - φ) < 5)) |
+                      ((abs(λ - λ²ₚ) < 5) & (abs(φₚ - φ) < 5)) | (φ < -78) ? 1 : 0
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
@@ -62,21 +68,14 @@ cᵢ(x, y, z) = C(dr(y)*8, 167.0)
 
 set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
-# Δx = minimum_xspacing(grid)
-# Δy = minimum_yspacing(grid)
-
-# Δ = 1 / sqrt(1 / Δx^2 + 1 / Δy^2)
-# c = sqrt(model.free_surface.gravitational_acceleration)
-# Δt = 0.3 * Δ / c
-
 Δt = 1minutes
 
-wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=1hour)
+wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=3hours)
 
 simulation = Simulation(model, Δt=Δt, stop_time=500days)
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
-                                                              filename = "orca025_bickley.jld2", 
+                                                              filename = "tripolar_bickley.jld2", 
                                                               schedule = TimeInterval(1day),
                                                               overwrite_existing = true)
 
@@ -88,3 +87,64 @@ simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 run!(simulation)
 
 # Let's visualize the fields!
+ζ = FieldTimeSeries("tripolar_bickley.jld2", "ζ")
+c = FieldTimeSeries("tripolar_bickley.jld2", "c")
+
+Nt = length(ζ.times)
+
+iter = Observable(1)
+
+# Lift the correct time step
+ζi = @lift(interior(ζ[$iter], :, :, 1))
+ci = @lift(interior(c[$iter], :, :, 1))
+
+# retrieve the Face-Face nodes in a Cartesian coordinate system
+cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Face(), Face(), Center())
+xF, yF, zF = cartesian_nodes
+
+# retrieve the Center-Center nodes in a Cartesian coordinate system
+cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Center(), Center(), Center())
+xC, yC, zC = cartesian_nodes
+
+fig = Figure()
+
+ax = LScene(fig[1, 1]; show_axis = false)
+surface!(ax, xF, yF, zF, color = ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
+
+ax = LScene(fig[1, 2]; show_axis = false)
+surface!(ax, xC, yC, zC, color = ci, colorrange = (-1, 1), colormap = :magma)
+
+GLMakie.record(fig, "spherical_bickley_with_continents.mp4", 1:Nt, framerate = 5) do i
+    @info "printing iteration $i of $Nt"
+    iter[] = i
+end
+
+# For fun, since the data on a Tripolar grid is topologically a matrix, let's look at 
+# how it looks projected on a plane! 
+# To make sure everything is working as expected let's plot the whole data including halo regions
+
+fig = Figure(size = (1500, 800))
+
+# Lift the correct time step
+ζi = @lift begin
+    z = ζ[$iter].data[:, :, 1]
+    z[z .== 0] .= NaN
+    z
+end
+
+ci = @lift begin 
+    t = c[$iter].data[:, :, 1]
+    t[t .== 0] .= NaN
+    t
+end
+
+ax = Axis(fig[1, 1])
+heatmap!(ax, ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
+
+ax = Axis(fig[1, 2])
+heatmap!(ax, ci, colorrange = (-1, 1), colormap = :magma)
+
+GLMakie.record(fig, "spherical_bickley_on_a_plane.mp4", 10:Nt, framerate = 5) do i
+    @info "printing iteration $i of $Nt"
+    iter[] = i
+end

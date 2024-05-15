@@ -1,71 +1,5 @@
-@inline function linear_interpolate(x₀, x, y) 
-    i₁, i₂ = index_binary_search(x, x₀, length(x))
-
-    @inbounds begin
-        x₁ = x[i₁]
-        x₂ = x[i₂]
-        y₁ = y[i₁]
-        y₂ = y[i₂]
-    end
-
-    if x₁ == x₂
-        return y₁
-    else
-        return (y₂ - y₁) / (x₂ - x₁) * (x₀ - x₁) + y₁
-    end
-end
-
-"""
-    secant_root_find(j₀, j₁, f; tol = 1e-12)
-
-Find the root of a function `f` using the secant method.
-
-# Arguments
-- `j₀`: Initial guess for the root.
-- `j₁`: Second guess for the root.
-- `f`: Function for which the root is to be found.
-- `tol`: Tolerance for convergence. Default is `1e-12`.
-
-# Returns
-The approximate root of the function `f`.
-"""
-function secant_root_find(j₀, j₁, f, N; tol = 1e-12, maxiter=Inf)
-    r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
-    iter = 0
-    while abs(f(r)) > tol && iter < maxiter
-        j₀ = max(1, min(j₁, N))
-        j₁ = max(1, min(r,  N))
-        r = j₁ - f(j₁) * (j₁ - j₀) / (f(j₁) - f(j₀)) 
-        iter += 1
-    end
-    return r
-end
-
-function bisection_root_find(f, j₀, j₁, Δj)
-    while j₀ + Δj < j₁ 
-        jₘ = (j₀ + j₁) / 2
-        if f(jₘ + 1) == 0
-            return jₘ
-        elseif f(jₘ + 1) < 0
-            j₀ = jₘ
-        else
-            j₁ = jₘ
-        end
-    end
-    return (j₀ + j₁) / 2
-end
-
-function get_wireframe(λF, φF)
-    φF = 90 .- φF[1:end-1, :]
-    λF = λF[1:end-1, :]
-
-    x = @. cosd(λF) * sind(φF)
-    y = @. sind(λF) * sind(φF)
-    z = @. cosd(φF)
-
-    return x, y, z
-end
-
+# Is this the same as in Oceananigans? 
+# TODO: check it out
 function haversine(a, b, radius)
     λ₁, φ₁ = a
     λ₂, φ₂ = b
@@ -76,6 +10,9 @@ function haversine(a, b, radius)
     return radius * acos(max(-1.0, min((x₁ * x₂ + y₁ * y₂ + z₁ * z₂) / radius^2, 1.0)))
 end
 
+# Calculate the metric terms from the coordinates of the grid
+# Note: There is probably a better way to do this, in Murray (2016) they give analytical 
+# expressions for the metric terms.
 @kernel function _calculate_metrics!(Δxᶠᶜᵃ, Δxᶜᶜᵃ, Δxᶜᶠᵃ, Δxᶠᶠᵃ,
                                      Δyᶠᶜᵃ, Δyᶜᶜᵃ, Δyᶜᶠᵃ, Δyᶠᶠᵃ,
                                      Azᶠᶜᵃ, Azᶜᶜᵃ, Azᶜᶠᵃ, Azᶠᶠᵃ,
@@ -83,15 +20,16 @@ end
                                      φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ, radius)
 
     i, j = @index(Global, NTuple)
+
     @inbounds begin
         Δxᶜᶜᵃ[i, j] = haversine((λᶠᶜᵃ[i+1, j], φᶠᶜᵃ[i+1, j]), (λᶠᶜᵃ[i, j],   φᶠᶜᵃ[i, j]),   radius)
         Δxᶠᶜᵃ[i, j] = haversine((λᶜᶜᵃ[i, j],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i-1, j], φᶜᶜᵃ[i-1, j]), radius)
-        Δxᶜᶠᵃ[i, j] = haversine((λᶠᶠᵃ[i+1, j], φᶠᶠᵃ[i+1, j]), (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
+        Δxᶜᶠᵃ[i, j] = haversine((λᶠᶠᵃ[i+1, j], φᶠᶠᵃ[i+1, j]), (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius) 
         Δxᶠᶠᵃ[i, j] = haversine((λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   (λᶜᶠᵃ[i-1, j], φᶜᶠᵃ[i-1, j]), radius)
 
         Δyᶜᶜᵃ[i, j] = haversine((λᶜᶠᵃ[i, j+1], φᶜᶠᵃ[i, j+1]),   (λᶜᶠᵃ[i, j],   φᶜᶠᵃ[i, j]),   radius)
-        Δyᶜᶠᵃ[i, j] = haversine((λᶜᶜᵃ[i, j  ],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i, j-1], φᶜᶜᵃ[i, j-1]), radius)
         Δyᶠᶜᵃ[i, j] = haversine((λᶠᶠᵃ[i, j+1], φᶠᶠᵃ[i, j+1]),   (λᶠᶠᵃ[i, j],   φᶠᶠᵃ[i, j]),   radius)
+        Δyᶜᶠᵃ[i, j] = haversine((λᶜᶜᵃ[i, j  ],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i, j-1], φᶜᶜᵃ[i, j-1]), radius)
         Δyᶠᶠᵃ[i, j] = haversine((λᶠᶜᵃ[i, j  ],   φᶠᶜᵃ[i, j]),   (λᶠᶜᵃ[i, j-1], φᶠᶜᵃ[i, j-1]), radius)
     
         a = lat_lon_to_cartesian(φᶠᶠᵃ[ i ,  j ], λᶠᶠᵃ[ i ,  j ], 1)
@@ -121,25 +59,5 @@ end
         d = lat_lon_to_cartesian(φᶜᶜᵃ[i-1,  j ], λᶜᶜᵃ[i-1,  j ], 1)
 
         Azᶠᶠᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2 
-    end
-end
-
-@kernel function _compute_coordinates!(λ, φ, Jeq, λ₀, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ)
-    i, j = @index(Global, NTuple)
-
-    @inbounds begin
-        if j < Jeq + 1
-            h = (λ₀ - Δλ * i) * 2π / 360
-            x = - f_curve(φ_grid[j]) * cos(h)
-            y = - f_curve(φ_grid[j]) * sin(h)
-        else
-            x = linear_interpolate(j, jnum[i, :], xnum[i, :])
-            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
-        end
-        
-        λ[i, j] = - 180 / π * (atan(y / x))              
-        φ[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) 
-
-        λ[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
     end
 end

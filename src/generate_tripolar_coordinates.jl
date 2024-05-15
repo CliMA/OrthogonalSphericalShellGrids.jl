@@ -1,279 +1,77 @@
+"""
+    _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
+                                   λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
+                                   first_pole_longitude,
+                                   focal_distance, Nλ)
 
-@kernel function _compute_tripolar_coordinates!(λ, φ, Jeq, λ₀, Δλ, φ_grid, f_curve, xnum, ynum, jnum, Nλ, loc)
+Compute the tripolar coordinates for a given set of input parameters. This function follows the formulation described in 
+`Ross J. Murray, "Explicit Generation of Orthogonal Grids for Ocean Models", Journal of Computational Physics,
+Volume 126, Issue 2, 1996, Pages 251-273`.
+
+The tripolar grid is built as a set of cofocal ellipsed and perpendicular hyperbolae.
+The `focal_distance` argument is the distance from the center of the ellipses to the foci.
+
+The ellipses obeys:
+
+       x²          y²
+   --------- + ---------  = 1
+   a²cosh²(ψ)  a²sinh²(ψ)
+
+While the set of perpendicular hyperbolae obey:
+
+       x²          y²
+   --------- + ---------  = 1
+   a²cos²(λ)   a²sin²(λ)
+
+Where `a` is the `focal_distance` to the center. `λ` is the longitudinal angle and `ψ` is the ``isometric latitude'' 
+defined by Murray (1996) as satisfying:
+
+    a sinh(ψ) = tand((90 - φ) / 2) 
+
+The final (x, y) points that define the stereographic projection of the tripolar coordinates are given by:
+
+    x = a * sinh(ψ) * cos(λ)
+    y = a * sinh(ψ) * sin(λ)
+
+for which it is possible to retrive the longitude and latitude by:
+
+    λ = - 180 / π * atan(y / x)
+    φ = 90 - 360 / π * atan(sqrt(y² + x²))
+"""
+@kernel function _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
+                                                λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
+                                                first_pole_longitude,
+                                                focal_distance, Nλ)
+    
     i, j = @index(Global, NTuple)
 
-    @inbounds begin
-        if j < Jeq + 1
-            h = (λ₀ - Δλ * i) * 2π / 360
-            x = - f_curve(φ_grid[j]) * cos(h)
-            y = - f_curve(φ_grid[j]) * sin(h)
-        elseif loc == Center() && j == size(φ, 2)
-            x = 0
-            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
-        else
-            x = linear_interpolate(j, jnum[i, :], xnum[i, :])
-            y = linear_interpolate(j, jnum[i, :], ynum[i, :])
-        end
-        
-        λ[i, j] = - 180 / π * ifelse(x == 0, ifelse(y == 0, 0, atan(Base.sign(y) * Inf)), atan(y / x))
-        φ[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) 
-        λ[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
+    λ2Ds = (λFF,  λFC,  λCF,  λCC)
+    φ2Ds = (φFF,  φFC,  φCF,  φCC)
+    λ1Ds = (λᶠᵃᵃ, λᶠᵃᵃ, λᶜᵃᵃ, λᶜᵃᵃ)
+    φ1Ds = (φᵃᶠᵃ, φᵃᶜᵃ, φᵃᶠᵃ, φᵃᶜᵃ)
+
+    for (λ2D, φ2D, λ1D, φ1D) in zip(λ2Ds, φ2Ds, λ1Ds, φ1Ds)
+        ψ = asinh(tand((90 - φ1D[j]) / 2) / focal_distance)
+        x = focal_distance * sind(λ1D[i]) * cosh(ψ)
+        y = focal_distance * cosd(λ1D[i]) * sinh(ψ)
+
+        # When x == 0 and y == 0 we are exactly at the north pole,
+        # λ (which depends on `atan(y / x)`) is not defined
+        # This makes sense, what is the longitude of the north pole? Could be anything!
+        # so we choose a value that is continuous with the surrounding points.
+        on_the_north_pole = (x == 0) & (y == 0)
+        north_pole_value  = ifelse(i == 1, -90, 90) 
+
+        λ2D[i, j] = ifelse(on_the_north_pole, north_pole_value, - 180 / π * atan(y / x))
+        φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
+
+        # Shift longitude to the range [-180, 180], the 
+        # the north singularities will be located at -90 and 90
+        λ2D[i, j] += ifelse(i ≤ Nλ÷2, -90, 90) 
+
+        # Make sure the singularities are at longitude we want them to be at. 
+        # (`first_pole_longitude` and `first_pole_longitude` + 180)
+        λ2D[i, j] += first_pole_longitude + 90
+        λ2D[i, j]  = convert_to_0_360(λ2D[i, j])
     end
-end
-
-"""
-    compute_coords!(jnum, xnum, ynum, Δλᶠᵃᵃ, Jeq, f_interpolator, g_interpolator)
-
-Compute the coordinates for an orthogonal spherical shell grid.
-
-# Arguments
-- `jnum`: An array to store the computed values of `jnum`.
-- `xnum`: An array to store the computed values of `xnum`.
-- `ynum`: An array to store the computed values of `ynum`.
-- `Δλᶠᵃᵃ`: The angular step size.
-- `Jeq`: The value of j at the equator.
-- `f_interpolator`: A function that interpolates the value of f.
-- `g_interpolator`: A function that interpolates the value of g.
-
-# Details
-This function computes the coordinates for an orthogonal spherical shell grid using the given parameters. 
-It uses a secant root finding method to find the value of `jnum` and an Adams-Bashforth-2 integrator to find the perpendicular to the circle.
-"""
-@kernel function compute_tripolar_coords!(jnum, xnum, ynum, λᵢ, Δλ, Δj, Jeq, Nφ, a_interpolator, b_interpolator)
-    i = @index(Global, Linear)
-    N = size(xnum, 2)
-    @inbounds begin
-        h = (λᵢ - Δλ * i) * 2π / 360
-        xnum[i, 1] = - a_interpolator(Jeq) * cos(h) 
-        ynum[i, 1] = - a_interpolator(Jeq) * sin(h)  # Starting always from a circumpherence at the equator
-        
-        Δx = xnum[i, 1] / N
-
-        myfunc(j) = (xnum[i, 1] / a_interpolator(j)) ^2 + (ynum[i, 1] / b_interpolator(j))^2 - 1 
-        jnum[i, 1] = bisection_root_find(myfunc, Jeq-1.0, Nφ+1-Δj, Δj)
-        
-        for n in 2:N
-            xnum[i, n] = xnum[i, n-1] - Δx
-            ynum[i, n] = ynum[i, n-1]
-            
-            iteration = 0
-            yₒ = 1e10
-
-            # Implicit integrator through a fixed point iteration
-            while norm(ynum[i, n] - yₒ) > 1e-12 && iteration < 1000
-                yₒ = ynum[i, n]
-                iteration+=1
-
-                # Great circles
-                func(j) = (xnum[i, n] / a_interpolator(j)) ^2 + (ynum[i, n] / b_interpolator(j))^2 - 1 
-                jnum[i, n-1] = bisection_root_find(func, Jeq-1.0, Nφ+1.0, Δj)
-
-                # Semi-Implicit integrator
-
-                G¹ = a_interpolator(jnum[i, n-1])^2 / b_interpolator(jnum[i, n-1])^2 / xnum[i, n]
-                
-                ynum[i, n] = ynum[i, n-1] / (1 + G¹ * Δx) 
-            end
-
-        end
-
-        @show i
-    end
-end
-
-@inline tripolar_stretching_function(φ; d = 0.4) = d / exp(-1) * exp( - 1 / ((pi / 4 -  ((90 - φ) / 180) * pi/2)/pi*4))
-
-@inline tan_a_curve(φ)          = - equator_fcurve(φ) 
-@inline exp_b_curve(φ; d = 0.4) = - equator_fcurve(φ) + ifelse(φ > 0, tripolar_stretching_function(φ; d), 0)
-
-@inline zero_c_curve(φ) = 0
-
-"""
-    generate_tripolar_metrics!(λFF, φFF, λFC, φFC, λCF, φCF, λCC;
-                              size, halo, latitude, longitude,
-                              Nproc, Nnum)
-
-Generate tripolar metrics for a spherical shell grid.
-
-# Arguments
-- `λFF`: Output array for face-face longitude coordinates.
-- `φFF`: Output array for face-face latitude coordinates.
-- `λFC`: Output array for face-center longitude coordinates.
-- `φFC`: Output array for face-center latitude coordinates.
-- `λCF`: Output array for center-face longitude coordinates.
-- `φCF`: Output array for center-face latitude coordinates.
-- `λCC`: Output array for center-center longitude coordinates.
-- `φCC`: Output array for center-center latitude coordinates.
-- `size`: Size of the grid.
-- `halo`: Halo size.
-- `latitude`: Latitude of the grid.
-- `longitude`: Longitude of the grid.
-- `Nproc`: Number of processors.
-- `Nnum`: Number of numerical points.
-
-# Returns
-- `nothing`
-"""
-function generate_tripolar_metrics!(Nλ, Nφ, Hλ, Hφ;
-                                    FT, latitude, longitude,
-                                    Nproc, Nnum, a_curve, b_curve,
-                                    first_pole_longitude)
-    
-    λFF = zeros(Nλ, Nφ)
-    φFF = zeros(Nλ, Nφ)
-    λFC = zeros(Nλ, Nφ)
-    φFC = zeros(Nλ, Nφ)
-
-    λCF = zeros(Nλ, Nφ)
-    φCF = zeros(Nλ, Nφ)
-    λCC = zeros(Nλ, Nφ)
-    φCC = zeros(Nλ, Nφ)
-
-    Lφ, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT, Periodic(), Nφ, Hφ, latitude,  :φ, CPU())
-    Lλ, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :λ, CPU())
-        
-    # Identify equator line 
-    J = Ref(0)
-    for j in 1:Nφ+1
-        if φᵃᶠᵃ[j] < 0
-            J[] = j
-        end
-    end
-
-    Jeq = J[] + 1
-
-    aᶠⱼ = zeros(Nproc)
-    bᶠⱼ = zeros(Nproc)
-    cᶠⱼ = zeros(Nproc)
-
-    aᶜⱼ = zeros(Nproc)
-    bᶜⱼ = zeros(Nproc)
-    cᶜⱼ = zeros(Nproc)
-
-    xnum = zeros(Nλ+1, Nnum)
-    ynum = zeros(Nλ+1, Nnum)
-    jnum = zeros(Nλ+1, Nnum)
-
-    fx = Float64.(collect(0:Nproc-1) ./ (Nproc-1) * Nφ .+ 1)
-
-    φproc = range(φᵃᶠᵃ[1], 90 - Δφᵃᶠᵃ / 2, length = Nproc) 
-    
-    # calculate the eccentricities of the ellipse
-    for (j, φ) in enumerate(φproc)
-        aᶠⱼ[j] = a_curve(φ)
-        bᶠⱼ[j] = b_curve(φ) 
-    end
-    
-    a_face_interp(j) = linear_interpolate(j, fx, aᶠⱼ)
-    b_face_interp(j) = linear_interpolate(j, fx, bᶠⱼ)
-
-    φproc = range(φᵃᶜᵃ[1], 90, length = Nproc) 
-    
-    # calculate the eccentricities of the ellipse
-    for (j, φ) in enumerate(φproc)
-        aᶜⱼ[j] = a_curve(φ)
-        bᶜⱼ[j] = b_curve(φ) 
-    end
-
-    a_center_interp(j) = linear_interpolate(j, fx, aᶜⱼ)
-    b_center_interp(j) = linear_interpolate(j, fx, bᶜⱼ)
-
-    # X - Face coordinates
-    λ₀ = 90 # ᵒ degrees  
-
-    # Face - Face coordinates
-    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp) 
-
-    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFF, φFF, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ, Face())
-    
-    # Face - Center coordinates
-    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶠᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp) 
-
-    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λFC, φFC, Jeq, λ₀, Δλᶠᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
-    
-    # X - Center coordinates
-    λ₀ = 90 + Δλᶜᵃᵃ / 2 # ᵒ degrees  
-
-    # Center - Face  
-    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_face_interp, b_face_interp) 
-
-    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCF, φCF, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶠᵃ, a_curve, xnum, ynum, jnum, Nλ, Face())
-    
-    # Face - Center coordinates
-    loop! = compute_tripolar_coords!(device(CPU()), min(256, Nλ+1), Nλ+1)
-    loop!(jnum, xnum, ynum, λ₀, Δλᶜᵃᵃ, 1/Nnum, Jeq, Nφ, a_center_interp, b_center_interp) 
-
-    loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    loop!(λCC, φCC, Jeq, λ₀, Δλᶜᵃᵃ, φᵃᶜᵃ, a_curve, xnum, ynum, jnum, Nλ, Center())
-    
-    λmFC = deepcopy(λFC)
-    λmCC = deepcopy(λCC) 
-
-    for i in 1:Nλ÷2
-        λFC[i, Nφ] = λmFC[Nλ - i + 1, Nφ]
-        λCC[i, Nφ] = λmCC[Nλ - i + 1, Nφ]
-    end
-
-    for λ in (λFF, λFC, λCF, λCC)
-        λ .+= first_pole_longitude 
-        λ .=  convert_to_0_360.(λ)
-    end
-
-    return λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC
-end
-
-function insert_midpoint(λ, φ, λ₀, Δλ, Jeq, φ_grid, a_curve, Nλ, ::Center)
-    λadd = zeros(Nλ)
-    φadd = zeros(Nλ)
-
-    for i in 1:Nλ
-        j = Jeq + 1
-        h = (λ₀ - Δλ * i) * 2π / 360
-        x = - a_curve(φ_grid[j]) * cos(h)
-        y = - a_curve(φ_grid[j]) * sin(h)
-
-        λadd[i] =  - 180 / π * atan(y / x)
-        φadd[i] =  90 - 360 / π * atan(sqrt(y^2 + x^2)) 
-
-        λadd[i] += ifelse(i ≤ Nλ÷2, -90, 90)
-    end
-
-    λ = hcat(λ[:, 1:Jeq], λadd, λ[:, Jeq+1:end])
-    φ = hcat(φ[:, 1:Jeq], φadd, φ[:, Jeq+1:end])
-
-    return λ, φ
-end
-
-function insert_midpoint(λ, φ, λ₀, Δλ, Jeq, φ_grid, a_curve, Nλ, ::Face)
-    λadd = zeros(Nλ)
-    φadd = zeros(Nλ)
-
-    for i in 1:Nλ
-        j = Jeq + 1
-        h = (λ₀ - Δλ * i) * 2π / 360
-        x = - a_curve(φ_grid[j]) * cos(h)
-        y = - a_curve(φ_grid[j]) * sin(h)
-
-        λadd[i] =  - 180 / π * atan(y / x)
-        φadd[i] =  90 - 360 / π * atan(sqrt(y^2 + x^2)) 
-
-        λadd[i] += ifelse(i ≤ Nλ÷2, -90, 90)
-    end
-
-    λ = hcat(λ[:, 1:Jeq], λadd, λ[:, Jeq+1:end])
-    φ = hcat(φ[:, 1:Jeq], φadd, φ[:, Jeq+1:end])
-
-    return λ, φ
-end
-
-import Oceananigans.Grids: lat_lon_to_cartesian, lat_lon_to_x, lat_lon_to_y, lat_lon_to_z
-
-function lat_lon_to_cartesian(lat, lon, radius)
-    return [lat_lon_to_x(lat, lon, radius), lat_lon_to_y(lat, lon, radius), lat_lon_to_z(lat, lon, radius)]
 end

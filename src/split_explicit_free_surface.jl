@@ -4,6 +4,9 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState, Spli
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface, SplitExplicitAuxiliaryFields
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: augmented_kernel_offsets, augmented_kernel_size
 
+# TODO: make sure this works on Distributed architectures, for the 
+# moment the only distribution we allow with the tripolar grid is 
+# a slab decomposition in the y-direction.
 function SplitExplicitAuxiliaryFields(grid::TRG)
 
     Gᵁ = Field((Face,   Center, Nothing), grid)
@@ -27,6 +30,9 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
             north  = ZipperBoundaryCondition()
     )
     
+    # Hᶠᶜ and Hᶜᶠ do not follow the TripolarGrid convention that: fields on faces
+    # need the sign to switch at the north halos. For this reason, we need to 
+    # provide the boundary conditions manually.
     Hᶠᶜ = Field((Face,   Center, Nothing), grid; boundary_conditions = bcs_fc)
     Hᶜᶠ = Field((Center, Face,   Nothing), grid; boundary_conditions = bcs_cf)
 
@@ -43,6 +49,8 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
 end
 
+# We play the same trick as in the Distributed implementation and we extend the halos for
+# a split explicit barotropic solver on a tripolar grid. Only on the North boundary though!
 @inline tripolar_split_explicit_halos(old_halos, step_halo) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
 
 # Internal function for HydrostaticFreeSurfaceModel
