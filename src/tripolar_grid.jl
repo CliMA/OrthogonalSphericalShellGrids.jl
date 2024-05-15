@@ -47,6 +47,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       north_poles_latitude = 45,
                       first_pole_longitude = 75) # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
 
+    # TODO: change a couple of allocations here and there to be able 
+    # to construct the grid on the GPU. This is not a huge problem as
+    # grid generation is quite fast, but it might become for sub-kilometer grids
+
     latitude  = (southermost_latitude, 90)
     longitude = (-180, 180) 
         
@@ -63,6 +67,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz,   Hz, z,         :z,         CPU())
 
     # Start with the NH stereographic projection
+    # TODO: make these on_architecture(arch, zeros(Nx, Ny))
+    # to build the grid on GPU
     λFF = zeros(Nλ, Nφ)
     φFF = zeros(Nλ, Nφ)
     λFC = zeros(Nλ, Nφ)
@@ -128,6 +134,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(pFC)
     fill_halo_regions!(pCC)
 
+    # Coordinates
     λᶠᶠᵃ = dropdims(lFF.data, dims=3)
     φᶠᶠᵃ = dropdims(pFF.data, dims=3)
 
@@ -140,7 +147,9 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     λᶜᶜᵃ = dropdims(lCC.data, dims=3)
     φᶜᶜᵃ = dropdims(pCC.data, dims=3)
 
-    # Metrics
+    # Allocate Metrics
+    # TODO: make these on_architecture(arch, zeros(Nx, Ny))
+    # to build the grid on GPU
     Δxᶜᶜᵃ = zeros(Nx, Ny)
     Δxᶠᶜᵃ = zeros(Nx, Ny)
     Δxᶜᶠᵃ = zeros(Nx, Ny)
@@ -156,6 +165,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Azᶜᶠᵃ = zeros(Nx, Ny)
     Azᶠᶠᵃ = zeros(Nx, Ny)
 
+    # Calculate metrics
     loop! = _calculate_metrics!(device(CPU()), (16, 16), (Nx, Ny))
 
     loop!(Δxᶠᶜᵃ, Δxᶜᶜᵃ, Δxᶜᶠᵃ, Δxᶠᶠᵃ,
