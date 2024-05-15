@@ -87,8 +87,8 @@ simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 run!(simulation)
 
 # Let's visualize the fields!
-ζ = FieldTimeSeries("orca025_bickley.jld2", "ζ")
-c = FieldTimeSeries("orca025_bickley.jld2", "c")
+ζ = FieldTimeSeries("tripolar_bickley.jld2", "ζ")
+c = FieldTimeSeries("tripolar_bickley.jld2", "c")
 
 Nt = length(ζ.times)
 

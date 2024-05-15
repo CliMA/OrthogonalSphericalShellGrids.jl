@@ -5,7 +5,7 @@ using OrthogonalSphericalShellGrids
 using GLMakie
 
 # Generate a Tripolar grid with a 2 degree resolution and ``north'' singularities at 20 degrees latitude
-grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (40, 20, 1), north_poles_latitude = 20)
+grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (180, 90, 1), north_poles_latitude = 65)
 
 # retrieve the Face-Face nodes in a Cartesian coordinate system
 cartesian_nodes, _ = get_cartesian_nodes_and_vertices(grid, Face(), Face(), Center())
