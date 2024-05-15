@@ -48,7 +48,7 @@ for which it is possible to retrive the longitude and latitude by:
     λ2Ds = (λFF,  λFC,  λCF,  λCC)
     φ2Ds = (φFF,  φFC,  φCF,  φCC)
     λ1Ds = (λᶠᵃᵃ, λᶠᵃᵃ, λᶜᵃᵃ, λᶜᵃᵃ)
-    φ1Ds = (φᵃᶜᵃ, φᵃᶠᵃ, φᵃᶜᵃ, φᵃᶠᵃ)
+    φ1Ds = (φᵃᶠᵃ, φᵃᶜᵃ, φᵃᶠᵃ, φᵃᶜᵃ)
 
     for (λ2D, φ2D, λ1D, φ1D) in zip(λ2Ds, φ2Ds, λ1Ds, φ1Ds)
         ψ = asinh(tand((90 - φ1D[j]) / 2) / focal_distance)
