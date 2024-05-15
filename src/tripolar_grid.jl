@@ -45,7 +45,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       radius               = R_Earth, 
                       z                    = (0, 1),
                       north_poles_latitude = 45,
-                      first_pole_longitude = 75) # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
+                      first_pole_longitude = 0)  # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
 
     # TODO: change a couple of allocations here and there to be able 
     # to construct the grid on the GPU. This is not a huge problem as

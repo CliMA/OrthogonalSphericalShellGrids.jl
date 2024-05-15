@@ -7,16 +7,21 @@ Nx = 360
 Ny = 180
 Nb = 40
 
-underlying_grid = TripolarGrid(size = (Nx, Ny, 1), halo = (5, 5, 5))
+first_pole_longitude = λ¹ₚ = 45
+north_poles_latitude = φₚ  = 25
 
-bottom_height = zeros(Nx, Ny)
+λ²ₚ = λ¹ₚ + 180
 
-bottom_height[1:Nb+1, end-Nb:end]                .= 1
-bottom_height[end-Nb:end, end-Nb:end]            .= 1
-bottom_height[(Nx-2Nb)÷2:(Nx+2Nb)÷2, end-Nb:end] .= 1
+# Build a tripolar grid with singularities at
+# (0, -90), (45, 25), (225, 25)
+underlying_grid = TripolarGrid(; size = (Nx, Ny, 1), 
+                                 halo = (5, 5, 5), 
+                                 first_pole_longitude,
+                                 north_poles_latitude)
 
-@show size(underlying_grid)
-@show size(bottom_height)
+# We need a bottom height field that ``masks'' the singularities
+bottom_height(λ, φ) = ((abs(λ - λ¹ₚ) < 5) & (abs(φₚ - φ) < 5)) |
+                      ((abs(λ - λ²ₚ) < 5) & (abs(φₚ - φ) < 5)) | (φ < -78) ? 1 : 0
 
 grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
 
