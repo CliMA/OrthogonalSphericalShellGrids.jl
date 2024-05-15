@@ -96,7 +96,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     φCF = circshift(φCF, (Nλ÷4, 0)) 
     λCC = circshift(λCC, (Nλ÷4, 0)) 
     φCC = circshift(φCC, (Nλ÷4, 0))
-    
 
     Nx = Nλ
     Ny = Nφ
