@@ -11,7 +11,7 @@ const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGri
                       radius               = R_Earth, 
                       z                    = (0, 1),
                       north_poles_latitude = 45,
-                      first_pole_longitude = 75)
+                      first_pole_longitude = 0)
 
 Constructs a tripolar grid on a spherical shell.
 
@@ -25,7 +25,7 @@ Keyword Arguments
 =================
 
 - `size`: The number of cells in the (longitude, latitude, z) dimensions.
-- `southermost_latitude`: The southernmost latitude of the grid. Default is -75.
+- `southermost_latitude`: The southernmost `Center` latitude of the grid. Default is -80.
 - `halo`: The halo size in the (longitude, latitude, z) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
 - `z`: The z-coordinate range of the grid. Default is (0, 1).
@@ -43,7 +43,7 @@ The north singularities are located at
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
-                      southermost_latitude = -80, 
+                      southermost_latitude = -80, # The southermost `Center` latitude of the grid
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
@@ -66,8 +66,13 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # but for the φ coordinate we need to remove one point at the north
     # because the the north pole is a `Center`point, not on `Face` point...
     Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ,   Hλ, longitude, :longitude, CPU())
-    Ly, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT,  Bounded(), Nφ-1, Hφ, latitude,  :latitude,  CPU())
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz,   Hz, z,         :z,         CPU())
+
+    # The φ coordinate is a bit more complicated because the center points start from
+    # southermost_latitude and end at 90ᵒ N.
+    φᵃᶜᵃ = collect(range(southermost_latitude, 90, length = Nφ))
+    Δφ = φᵃᶜᵃ[2] - φᵃᶜᵃ[1]
+    φᵃᶠᵃ = φᵃᶜᵃ .- Δφ / 2
 
     # Start with the NH stereographic projection
     # TODO: make these on_architecture(arch, zeros(Nx, Ny))
