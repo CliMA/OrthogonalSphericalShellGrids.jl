@@ -4,15 +4,20 @@ using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using OrthogonalSphericalShellGrids
 using GLMakie
 
-grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (90, 45, 1), north_poles_latitude = 0)
-cartesian_nodes, cartesian_vertices = get_cartesian_nodes_and_vertices(grid, Face(), Face(), Center())
+# Generate a Tripolar grid with a 2 degree resolution and ``north'' singularities at 20 degrees latitude
+grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (180, 90, 1), north_poles_latitude = 20)
+
+# retrieve the Face-Face nodes in a Cartesian coordinate system
+cartesian_nodes, _ = get_cartesian_nodes_and_vertices(grid, Face(), Face(), Center())
 xF, yF, zF = cartesian_nodes
 
-cartesian_nodes, cartesian_vertices = get_cartesian_nodes_and_vertices(grid, Center(), Center(), Center())
+# retrieve the Center-Center nodes in a Cartesian coordinate system
+cartesian_nodes, _ = get_cartesian_nodes_and_vertices(grid, Center(), Center(), Center())
 xC, yC, zC = cartesian_nodes
 
+# Plot a nice visualization of the grid structure
 fig = Figure()
-ax  = LScene(fig[1, 1])
+ax  = LScene(fig[1, 1]; show_axis = false)
 
 surface!(ax, xF.*0.9999, yF.*0.9999, zF.*0.9999, color = :blue)
 wireframe!(ax, xF, yF, zF, color = :black)
