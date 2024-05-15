@@ -86,6 +86,18 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
           first_pole_longitude,
           focal_distance, Nλ)
 
+    # We need to circshift eveything to have the first pole at the beginning of the 
+    # grid and the second pole in the middle
+    λFF = circshift(λFF, (Nλ÷4, 0))
+    φFF = circshift(φFF, (Nλ÷4, 0)) 
+    λFC = circshift(λFC, (Nλ÷4, 0)) 
+    φFC = circshift(φFC, (Nλ÷4, 0)) 
+    λCF = circshift(λCF, (Nλ÷4, 0)) 
+    φCF = circshift(φCF, (Nλ÷4, 0)) 
+    λCC = circshift(λCC, (Nλ÷4, 0)) 
+    φCC = circshift(φCC, (Nλ÷4, 0))
+    
+
     Nx = Nλ
     Ny = Nφ
             
