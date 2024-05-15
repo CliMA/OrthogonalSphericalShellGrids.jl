@@ -52,6 +52,8 @@ sign(::Type{Face},   ::Type{Center}) = - 1 # u-velocity type
 sign(::Type{Center}, ::Type{Face})   = - 1 # v-velocity type
 sign(::Type{Center}, ::Type{Center}) = 1
 
+# Extension of the constructor for a `Field` on a `TRG` grid. We assumes that the north boundary is a zipper
+# with a sign that depends on the location of the field (revert the value of the halos if on edges, keep it if on nodes or centers)
 function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op, status)
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)

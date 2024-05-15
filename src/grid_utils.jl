@@ -1,3 +1,5 @@
+# Is this the same as in Oceananigans? 
+# TODO: check it out
 function haversine(a, b, radius)
     λ₁, φ₁ = a
     λ₂, φ₂ = b
@@ -8,6 +10,9 @@ function haversine(a, b, radius)
     return radius * acos(max(-1.0, min((x₁ * x₂ + y₁ * y₂ + z₁ * z₂) / radius^2, 1.0)))
 end
 
+# Calculate the metric terms from the coordinates of the grid
+# Note: There is probably a better way to do this, in Murray (2016) they give analytical 
+# expressions for the metric terms.
 @kernel function _calculate_metrics!(Δxᶠᶜᵃ, Δxᶜᶜᵃ, Δxᶜᶠᵃ, Δxᶠᶠᵃ,
                                      Δyᶠᶜᵃ, Δyᶜᶜᵃ, Δyᶜᶠᵃ, Δyᶠᶠᵃ,
                                      Azᶠᶜᵃ, Azᶜᶜᵃ, Azᶜᶠᵃ, Azᶠᶠᵃ,
@@ -15,6 +20,7 @@ end
                                      φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ, radius)
 
     i, j = @index(Global, NTuple)
+    
     @inbounds begin
         Δxᶜᶜᵃ[i, j] = haversine((λᶠᶜᵃ[i+1, j], φᶠᶜᵃ[i+1, j]), (λᶠᶜᵃ[i, j],   φᶠᶜᵃ[i, j]),   radius)
         Δxᶠᶜᵃ[i, j] = haversine((λᶜᶜᵃ[i, j],   φᶜᶜᵃ[i, j]),   (λᶜᶜᵃ[i-1, j], φᶜᶜᵃ[i-1, j]), radius)
