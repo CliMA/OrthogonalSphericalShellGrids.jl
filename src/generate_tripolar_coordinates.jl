@@ -66,11 +66,11 @@ for which it is possible to retrive the longitude and latitude by:
         φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
 
         # Shift longitude to the range [-180, 180], the 
-        # north poles are located at -180 and 0
+        # the north singluarities are located at -180 and 0
         λ2D[i, j] += ifelse(i ≤ Nλ÷2, -90, 90) 
 
-        # Make sure out poles are aligned with the 
-        # longitude we want them to be at. The poles now are at -180 and 0,
+        # Make sure out singularities are aligned with the 
+        # longitude we want them to be at. The singularities are now are at -180 and 0,
         # we want them to be at first_pole_longitude and first_pole_longitude + 180
         λ2D[i, j] += first_pole_longitude 
         λ2D[i, j]  = convert_to_0_360(λ2D[i, j])

@@ -1,5 +1,6 @@
 module OrthogonalSphericalShellGrids
 
+# The only things we need!
 export TripolarGrid, ZipperBoundaryCondition
 
 using Printf
