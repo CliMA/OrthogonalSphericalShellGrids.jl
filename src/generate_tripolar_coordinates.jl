@@ -4,10 +4,11 @@
                                    first_pole_longitude,
                                    focal_distance, Nλ)
 
-Compute the tripolar coordinates for a given set of input parameters.
-This function follows the formulation of an orthogonal spherical shell grid build
-from cofocal ellipses and hyperbolae.
+Compute the tripolar coordinates for a given set of input parameters. This function follows the formulation described in 
+`Ross J. Murray, "Explicit Generation of Orthogonal Grids for Ocean Models", Journal of Computational Physics,
+Volume 126, Issue 2, 1996, Pages 251-273`.
 
+The tripolar grid is built as a set of cofocal ellipsed and perpendicular hyperbolae.
 The `focal_distance` argument is the distance from the center of the ellipses to the foci.
 
 The ellipses obeys:
