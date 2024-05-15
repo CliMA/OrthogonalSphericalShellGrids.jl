@@ -13,7 +13,7 @@ struct Zipper <: AbstractBoundaryConditionClassification end
 Create a zipper boundary condition specific to the `TripolarGrid`.
 A Zipper boundary condition is similar to a periodic boundary condition, but, instead of retrieving the value from the opposite boundary, 
 it splits the boundary in two and retrieves the value from the opposite side of the boundary. 
-It is possible to think of it as a periodic boundary over a folder domain.
+It is possible to think of it as a periodic boundary over a folded domain.
 
 When copying in halos, folded velocities need to switch sign, while tracers or similar fields do not.
 
