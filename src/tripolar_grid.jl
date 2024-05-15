@@ -36,7 +36,10 @@ Keyword Arguments
 Returns
 ========
 
-A `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere
+An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
+The north singularities are located at 
+
+`i = 1, j = Nφ` and `i = Nλ ÷ 2 + 1, j = Nλ` 
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
@@ -61,7 +64,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     # the λ and Z coordinate is the same as for the other grids,
     # but for the φ coordinate we need to remove one point at the north
-    # because the the north pole is a point on `Center`, not on `Face`s...
+    # because the the north pole is a `Center`point, not on `Face` point...
     Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ,   Hλ, longitude, :longitude, CPU())
     Ly, φᵃᶠᵃ, φᵃᶜᵃ, Δφᵃᶠᵃ, Δφᵃᶜᵃ = generate_coordinate(FT,  Bounded(), Nφ-1, Hφ, latitude,  :latitude,  CPU())
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz,   Hz, z,         :z,         CPU())
@@ -88,14 +91,16 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     # We need to circshift eveything to have the first pole at the beginning of the 
     # grid and the second pole in the middle
-    λFF = circshift(λFF, (Nλ÷4, 0))
-    φFF = circshift(φFF, (Nλ÷4, 0)) 
-    λFC = circshift(λFC, (Nλ÷4, 0)) 
-    φFC = circshift(φFC, (Nλ÷4, 0)) 
-    λCF = circshift(λCF, (Nλ÷4, 0)) 
-    φCF = circshift(φCF, (Nλ÷4, 0)) 
-    λCC = circshift(λCC, (Nλ÷4, 0)) 
-    φCC = circshift(φCC, (Nλ÷4, 0))
+    shift = Nλ÷4
+
+    λFF = circshift(λFF, (shift, 0))
+    φFF = circshift(φFF, (shift, 0)) 
+    λFC = circshift(λFC, (shift, 0)) 
+    φFC = circshift(φFC, (shift, 0)) 
+    λCF = circshift(λCF, (shift, 0)) 
+    φCF = circshift(φCF, (shift, 0)) 
+    λCC = circshift(λCC, (shift, 0)) 
+    φCC = circshift(φCC, (shift, 0))
 
     Nx = Nλ
     Ny = Nφ
