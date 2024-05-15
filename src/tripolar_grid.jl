@@ -253,6 +253,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     continue_south!(Azᶜᶜᵃ, latitude_longitude_grid.Azᶜᶜᵃ)
 
     # Final grid with correct metrics
+    # TODO: remove `on_architecture(arch, ...)` when we shift grid construction to GPU
     grid = OrthogonalSphericalShellGrid{Periodic, RightConnected, Bounded}(arch,
                     Nx, Ny, Nz,
                     Hx, Hy, Hz,
