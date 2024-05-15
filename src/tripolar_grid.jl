@@ -93,6 +93,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # Helper grid to fill halo 
     grid = RectilinearGrid(; size = (Nx, Ny), halo = (Hλ, Hφ), topology = (Periodic, RightConnected, Flat), x = (0, 1), y = (0, 1))
 
+    # Boundary conditions to fill halos of the coordinate and metric terms
+    # We need to define them manually because of the convention in the 
+    # ZipperBoundaryCondition that edge fields need to switch sign (which we definitely do not
+    # want for coordinates and metrics)
     default_boundary_conditions = FieldBoundaryConditions(north  = ZipperBoundaryCondition(),
                                                           south  = nothing, # The south should be `continued`
                                                           west   = Oceananigans.PeriodicBoundaryCondition(),
