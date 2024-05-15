@@ -253,6 +253,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     return grid
 end
 
+# Continue the metrics to the south with LatitudeLongitudeGrid metrics
 function continue_south!(new_metric, lat_lon_metric::Number)
     Hx, Hy = new_metric.offsets
     Nx, Ny = size(new_metric)
@@ -263,6 +264,7 @@ function continue_south!(new_metric, lat_lon_metric::Number)
     return nothing
 end
 
+# Continue the metrics to the south with LatitudeLongitudeGrid metrics
 function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 1})
     Hx, Hy = new_metric.offsets
     Nx, Ny = size(new_metric)
@@ -273,6 +275,7 @@ function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 1})
     return nothing
 end
 
+# Continue the metrics to the south with LatitudeLongitudeGrid metrics
 function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 2})
     Hx, Hy = - new_metric.offsets
     Nx, Ny = size(new_metric)

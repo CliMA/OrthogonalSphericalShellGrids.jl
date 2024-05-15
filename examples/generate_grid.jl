@@ -4,7 +4,7 @@ using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using OrthogonalSphericalShellGrids
 using GLMakie
 
-grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (40, 20, 1), north_poles_latitude = 40, halo = (20, 20, 1))
+grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (400, 200, 1), north_poles_latitude = 40)
 cartesian_nodes, cartesian_vertices = get_cartesian_nodes_and_vertices(grid, Face(), Face(), Center())
 xF, yF, zF = cartesian_nodes
 
