@@ -56,9 +56,9 @@ for which it is possible to retrive the longitude and latitude by:
         y = focal_distance * cosd(λ1D[i]) * sinh(ψ)
 
         # When x == 0 and y == 0 we are exactly at the north pole,
-        # and λ (which depends on `atan(y / x)`) is not defined
+        # λ (which depends on `atan(y / x)`) is not defined
         # This makes sense, what is the longitude of the north pole? Could be anything!
-        # so we choose a value that is continuos with the surrounding points.
+        # so we choose a value that is continuous with the surrounding points.
         on_the_north_pole = (x == 0) & (y == 0)
         north_pole_value  = ifelse(i == 1, -90, 90) 
 
@@ -66,13 +66,12 @@ for which it is possible to retrive the longitude and latitude by:
         φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
 
         # Shift longitude to the range [-180, 180], the 
-        # the north singluarities are located at -180 and 0
+        # the north singularities will be located at -90 and 90
         λ2D[i, j] += ifelse(i ≤ Nλ÷2, -90, 90) 
 
-        # Make sure out singularities are aligned with the 
-        # longitude we want them to be at. The singularities are now are at -180 and 0,
-        # we want them to be at first_pole_longitude and first_pole_longitude + 180
-        λ2D[i, j] += first_pole_longitude 
+        # Make sure the singularities are at longitude we want them to be at. 
+        # (`first_pole_longitude` and `first_pole_longitude` + 180)
+        λ2D[i, j] += first_pole_longitude + 90
         λ2D[i, j]  = convert_to_0_360(λ2D[i, j])
     end
 end
