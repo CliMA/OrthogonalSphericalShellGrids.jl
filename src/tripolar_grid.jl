@@ -103,7 +103,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                           east   = Oceananigans.PeriodicBoundaryCondition(),
                                                           top    = nothing,
                                                           bottom = nothing)
-                                                        
+
     lFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
     pFF = Field((Face, Face, Center), grid; boundary_conditions = default_boundary_conditions)
 
@@ -178,7 +178,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
           λᶠᶜᵃ, λᶜᶜᵃ, λᶜᶠᵃ, λᶠᶠᵃ,
           φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ,
           radius)
-
+          
     # Metrics fields to fill halos
     FF = Field((Face, Face, Center),     grid; boundary_conditions = default_boundary_conditions)
     FC = Field((Face, Center, Center),   grid; boundary_conditions = default_boundary_conditions)
@@ -194,10 +194,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Δxᶠᶠᵃ = dropdims(FF.data, dims=3)
-    Δxᶜᶠᵃ = dropdims(CF.data, dims=3)
-    Δxᶠᶜᵃ = dropdims(FC.data, dims=3)
-    Δxᶜᶜᵃ = dropdims(CC.data, dims=3)
+    Δxᶠᶠᵃ = deepcopy(dropdims(FF.data, dims=3))
+    Δxᶜᶠᵃ = deepcopy(dropdims(CF.data, dims=3))
+    Δxᶠᶜᵃ = deepcopy(dropdims(FC.data, dims=3))
+    Δxᶜᶜᵃ = deepcopy(dropdims(CC.data, dims=3))
 
     set!(FF, Δyᶠᶠᵃ)
     set!(CF, Δyᶜᶠᵃ)
@@ -207,10 +207,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Δyᶠᶠᵃ = dropdims(FF.data, dims=3)
-    Δyᶜᶠᵃ = dropdims(CF.data, dims=3)
-    Δyᶠᶜᵃ = dropdims(FC.data, dims=3)
-    Δyᶜᶜᵃ = dropdims(CC.data, dims=3)
+    Δyᶠᶠᵃ = deepcopy(dropdims(FF.data, dims=3))
+    Δyᶜᶠᵃ = deepcopy(dropdims(CF.data, dims=3))
+    Δyᶠᶜᵃ = deepcopy(dropdims(FC.data, dims=3))
+    Δyᶜᶜᵃ = deepcopy(dropdims(CC.data, dims=3))
 
     set!(FF, Azᶠᶠᵃ) 
     set!(CF, Azᶜᶠᵃ)
@@ -220,10 +220,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(CF)
     fill_halo_regions!(FC)
     fill_halo_regions!(CC)
-    Azᶠᶠᵃ = dropdims(FF.data, dims=3)
-    Azᶜᶠᵃ = dropdims(CF.data, dims=3)
-    Azᶠᶜᵃ = dropdims(FC.data, dims=3)
-    Azᶜᶜᵃ = dropdims(CC.data, dims=3)
+    Azᶠᶠᵃ = deepcopy(dropdims(FF.data, dims=3))
+    Azᶜᶠᵃ = deepcopy(dropdims(CF.data, dims=3))
+    Azᶠᶜᵃ = deepcopy(dropdims(FC.data, dims=3))
+    Azᶜᶜᵃ = deepcopy(dropdims(CC.data, dims=3))
 
     Hx, Hy, Hz = halo
 
