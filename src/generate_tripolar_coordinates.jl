@@ -54,7 +54,7 @@ for which it is possible to retrive the longitude and latitude by:
         x = focal_distance * sind(λ1D[i]) * cosh(ψ)
         y = focal_distance * cosd(λ1D[i]) * sinh(ψ)
 
-        λ2D[i, j] = - 180 / π * ifelse(x == 0, ifelse(y == 0, 0, atan(Inf)), atan(y / x))
+        λ2D[i, j] = - 180 / π * ifelse(x == 0, ifelse(y == 0, 0, - atan(Inf)), atan(y / x))
         φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
 
         @show x, y, λ2D[i, j], φ2D[i, j]
