@@ -35,15 +35,13 @@ pages = [
 #####
 
 format = Documenter.HTML(collapselevel = 1,
-                         prettyurls = get(ENV, "CI", nothing) == "true",
-                         canonical = "https://simone-silvestri.github.io/OrthogonalSphericalShellGrids/stable/",
                          mathengine = MathJax3(),
                          size_threshold = 3 * 1024^2)
 
 makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          authors = "Simone Silvestri",
          pages = pages,
-         format = format = Documenter.HTML(),
+         format = format,
          doctest = true, # set to false to speed things up
          clean = true,
          checkdocs = :exports) # set to :none to speed things up
