@@ -2,10 +2,10 @@ using Oceananigans
 using Oceananigans.Grids: R_Earth, generate_coordinate
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using OrthogonalSphericalShellGrids
-using GLMakie
+using CairoMakie
 
 # Generate a Tripolar grid with a 2 degree resolution and ``north'' singularities at 20 degrees latitude
-grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (180, 90, 1), north_poles_latitude = 65)
+grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (180, 90, 1), north_poles_latitude = 35)
 
 # retrieve the Face-Face nodes in a Cartesian coordinate system
 cartesian_nodes, _ = get_cartesian_nodes_and_vertices(grid, Face(), Face(), Center())
@@ -24,3 +24,5 @@ wireframe!(ax, xF, yF, zF, color = :black)
 
 surface!(ax, xC.*0.9999, yC.*0.9999, zC.*0.9999, color = :blue)
 wireframe!(ax, xC, yC, zC, color = :blue)
+
+fig
