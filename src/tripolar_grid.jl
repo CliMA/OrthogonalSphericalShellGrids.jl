@@ -13,7 +13,9 @@ const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGri
                       north_poles_latitude = 45,
                       first_pole_longitude = 0)
 
-Constructs a tripolar grid on a spherical shell.
+Constructs a tripolar grid on a spherical shell. 
+NOTE: due to the requirements of the folding at the north edge of the domain, 
+`size[1]` should be an even number.
 
 Positional Arguments
 ====================
@@ -61,6 +63,10 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Nλ, Nφ, Nz = size
     Hλ, Hφ, Hz = halo
+
+    if isodd(Nλ)
+        throw(ArgumentError("The number of cells in the longitude dimension should be even!"))
+    end
 
     # the λ and Z coordinate is the same as for the other grids,
     # but for the φ coordinate we need to remove one point at the north
