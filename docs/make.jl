@@ -43,7 +43,7 @@ format = Documenter.HTML(collapselevel = 1,
 makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          authors = "Simone Silvestri",
          pages = pages,
-         format = format,
+         format = format = Documenter.HTML(),
          doctest = true, # set to false to speed things up
          clean = true,
          checkdocs = :exports) # set to :none to speed things up
@@ -60,7 +60,6 @@ makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
 # for more information.
 
 deploydocs(repo = "github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl.git",
-           versions = ["stable" => "v^", "dev" => "dev", "v#.#.#"],
            forcepush = true,
-           push_preview = false,
+           push_preview = true,
            devbranch = "main")
