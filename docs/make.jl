@@ -38,7 +38,7 @@ format = Documenter.HTML(collapselevel = 1,
                          prettyurls = get(ENV, "CI", nothing) == "true",
                          canonical = "https://simone-silvestri.github.io/OrthogonalSphericalShellGrids/stable/",
                          mathengine = MathJax3(),
-                         size_threshold = 2^20)
+                         size_threshold = 3 * 1024^2)
 
 makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          authors = "Simone Silvestri",
