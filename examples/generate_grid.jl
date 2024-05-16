@@ -1,4 +1,5 @@
 using OrthogonalSphericalShellGrids
+using OrthogonalSphericalShellGrids: Face, Center
 using OrthogonalSphericalShellGrids: get_cartesian_nodes_and_vertices
 using CairoMakie
 

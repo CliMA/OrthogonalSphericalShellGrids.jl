@@ -5,6 +5,7 @@ export TripolarGrid, ZipperBoundaryCondition
 
 using Printf
 using Oceananigans
+using Oceananigans: Face, Center
 using Oceananigans.Grids: R_Earth
 
 using Oceananigans.Fields: index_binary_search
