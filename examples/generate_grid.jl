@@ -1,7 +1,5 @@
-using Oceananigans
-using Oceananigans.Grids: R_Earth, generate_coordinate
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using OrthogonalSphericalShellGrids
+using OrthogonalSphericalShellGrids: get_cartesian_nodes_and_vertices
 using CairoMakie
 
 # Generate a Tripolar grid with a 2 degree resolution and ``north'' singularities at 20 degrees latitude

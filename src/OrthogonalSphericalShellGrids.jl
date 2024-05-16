@@ -13,6 +13,7 @@ using JLD2
 
 using Oceananigans.Grids: halo_size, spherical_area_quadrilateral
 using Oceananigans.Grids: lat_lon_to_cartesian
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using OffsetArrays
 using Oceananigans.Operators
 
