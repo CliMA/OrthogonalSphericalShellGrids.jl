@@ -11,32 +11,42 @@ Volume 126, Issue 2, 1996, Pages 251-273`.
 The tripolar grid is built as a set of cofocal ellipsed and perpendicular hyperbolae.
 The `focal_distance` argument is the distance from the center of the ellipses to the foci.
 
-The ellipses obeys:
+The family of ellipses obeys:
 
+```
        x²          y²
    --------- + ---------  = 1
    a²cosh²(ψ)  a²sinh²(ψ)
+```
 
-While the set of perpendicular hyperbolae obey:
+While the family of perpendicular hyperbolae obey:
 
+```
        x²          y²
    --------- + ---------  = 1
    a²cos²(λ)   a²sin²(λ)
+```
 
 Where `a` is the `focal_distance` to the center. `λ` is the longitudinal angle and `ψ` is the ``isometric latitude'' 
 defined by Murray (1996) as satisfying:
 
+```
     a sinh(ψ) = tand((90 - φ) / 2) 
+```
 
 The final (x, y) points that define the stereographic projection of the tripolar coordinates are given by:
 
+```
     x = a * sinh(ψ) * cos(λ)
     y = a * sinh(ψ) * sin(λ)
+```
 
 for which it is possible to retrive the longitude and latitude by:
 
+```
     λ = - 180 / π * atan(y / x)
     φ = 90 - 360 / π * atan(sqrt(y² + x²))
+```
 """
 @kernel function _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
                                                 λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
