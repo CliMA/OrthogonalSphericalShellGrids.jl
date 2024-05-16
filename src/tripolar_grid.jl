@@ -31,17 +31,17 @@ Keyword Arguments
 - `halo`: The halo size in the (longitude, latitude, z) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
 - `z`: The z-coordinate range of the grid. Default is (0, 1).
-- `first_pole_longitude`: The longitude of the first ``north'' singularity. 
+- `first_pole_longitude`: The longitude of the first "north" singularity. 
                           The second singularity will be located at `first_pole_longitude + 180ᵒ`.
-- `north_poles_latitude`: The latitude of the ``north'' singularities.
+- `north_poles_latitude`: The latitude of the "north" singularities.
 
 Returns
 ========
 
 An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
-The north singularities are located at 
+The two singularities are located at 
 
-`i = 1, j = Nφ` and `i = Nλ ÷ 2 + 1, j = Nλ` 
+ `(i, j) = (1, Nφ)`, and `(i, j) = (Nλ ÷ 2 + 1, Nφ)` 
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
