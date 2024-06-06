@@ -1,8 +1,8 @@
 using Oceananigans.Grids: halo_size, with_halo
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState, SplitExplicitFreeSurface, calculate_column_height! 
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: augmented_kernel_offsets, augmented_kernel_size
 
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface, SplitExplicitAuxiliaryFields
-import Oceananigans.Models.HydrostaticFreeSurfaceModels: augmented_kernel_offsets, augmented_kernel_size
 
 # TODO: make sure this works on Distributed architectures, for the 
 # moment the only distribution we allow with the tripolar grid is 
@@ -12,15 +12,7 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     Gᵁ = Field((Face,   Center, Nothing), grid)
     Gⱽ = Field((Center, Face,   Nothing), grid)
 
-    bcs_fc = FieldBoundaryConditions(
-            top    = nothing,
-            bottom = nothing,
-            west   = Gᵁ.boundary_conditions.west,
-            east   = Gᵁ.boundary_conditions.east,         
-            south  = Gᵁ.boundary_conditions.south,
-            north  = ZipperBoundaryCondition()
-    )
-    
+    bcs_fc = positive_zipper_boundary(Gᵁ, grid)
     bcs_cf = FieldBoundaryConditions(
             top    = nothing,
             bottom = nothing,
@@ -41,13 +33,51 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
 
     fill_halo_regions!((Hᶠᶜ, Hᶜᶠ))
 
-    Nx, Ny, _ = size(grid)
-    Hx, Hy, _ = halo_size(grid)
+    # In a non-parallel grid we calculate only the interior,
+    # otherwise, the rules remain the same
+    kernel_size    = tripolar_augmented_kernel_size(grid)
+    kernel_offsets = tripolar_augmented_kernel_offsets(grid)
 
-    kernel_parameters = KernelParameters((Nx, Ny + Hy - 1), (0, 0))
+    kernel_parameters = KernelParameters(kernel_size, kernel_offsets)
     
     return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
 end
+
+positive_zipper_boundary(default_field, ::TRG) = 
+        FieldBoundaryConditions(
+            top    = nothing,
+            bottom = nothing,
+            west   = default_field.boundary_conditions.west,
+            east   = default_field.boundary_conditions.east,         
+            south  = default_field.boundary_conditions.south,
+            north  = ZipperBoundaryCondition()
+        )
+
+
+function positive_zipper_boundary(default_field, grid::DTRG)  
+        arch = architecture(grid)
+        workers = ranks(arch.partition)
+
+        if arch.local_rank == workers[2] - 1
+                return  FieldBoundaryConditions(
+                                top    = nothing,
+                                bottom = nothing,
+                                west   = default_field.boundary_conditions.west,
+                                east   = default_field.boundary_conditions.east,         
+                                south  = default_field.boundary_conditions.south,
+                                north  = ZipperBoundaryCondition()
+                        )
+        else
+                return default_field.boundary_conditions
+        end
+end
+
+@inline tripolar_augmented_kernel_size(grid::TRG)    = (grid.Nx, grid.Ny + grid.Hy - 1)
+@inline tripolar_augmented_kernel_offsets(grid::TRG) = (0, 0)
+        
+# In case of a distributed architecture, nothing changes!
+@inline tripolar_augmented_kernel_size(grid::DTRG)    = augmented_kernel_size(grid)
+@inline tripolar_augmented_kernel_offsets(grid::DTRG) = augmented_kernel_offsets(grid)
 
 # We play the same trick as in the Distributed implementation and we extend the halos for
 # a split explicit barotropic solver on a tripolar grid. Only on the North boundary though!
