@@ -1,5 +1,11 @@
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations: ranks, inject_halo_communication_boundary_conditions
+using Oceananigans.DistributedComputations: 
+                            local_size, 
+                            ranks, 
+                            inject_halo_communication_boundary_conditions,
+                            concatenate_local_sizes
+
+using Oceananigans.Grids: topology
 
 const DistributedTripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, <:Distributed}
 
@@ -23,7 +29,7 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4
 
     # We build the global grid on a CPU architecture, in order to split it easily
     global_grid = TripolarGrid(CPU(), FT; halo, kwargs...)
-    Nx, Ny, Nz  = size(global_grid)
+    Nx, Ny, Nz  = global_size = size(global_grid)
 
     # Splitting the grid manually, remember, only splitting 
     # the j-direction is supported for the moment
@@ -37,42 +43,42 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4
     jrange = jstart - Hy : jend + Hy
 
     # Partitioning the Coordinates
-    λᶠᶠᵃ = grid.λᶠᶠᵃ[:, jrange]
-    φᶠᶠᵃ = grid.φᶠᶠᵃ[:, jrange]
-    λᶠᶜᵃ = grid.λᶠᶜᵃ[:, jrange]
-    φᶠᶜᵃ = grid.φᶠᶜᵃ[:, jrange]
-    λᶜᶠᵃ = grid.λᶜᶠᵃ[:, jrange]
-    φᶜᶠᵃ = grid.φᶜᶠᵃ[:, jrange]
-    λᶜᶜᵃ = grid.λᶜᶜᵃ[:, jrange]
-    φᶜᶜᵃ = grid.φᶜᶜᵃ[:, jrange]
+    λᶠᶠᵃ = global_grid.λᶠᶠᵃ[:, jrange]
+    φᶠᶠᵃ = global_grid.φᶠᶠᵃ[:, jrange]
+    λᶠᶜᵃ = global_grid.λᶠᶜᵃ[:, jrange]
+    φᶠᶜᵃ = global_grid.φᶠᶜᵃ[:, jrange]
+    λᶜᶠᵃ = global_grid.λᶜᶠᵃ[:, jrange]
+    φᶜᶠᵃ = global_grid.φᶜᶠᵃ[:, jrange]
+    λᶜᶜᵃ = global_grid.λᶜᶜᵃ[:, jrange]
+    φᶜᶜᵃ = global_grid.φᶜᶜᵃ[:, jrange]
 
     # Partitioning the Metrics
-    Δxᶜᶜᵃ = grid.Δxᶜᶜᵃ[:, jrange]
-    Δxᶠᶜᵃ = grid.Δxᶠᶜᵃ[:, jrange]
-    Δxᶜᶠᵃ = grid.Δxᶜᶠᵃ[:, jrange]
-    Δxᶠᶠᵃ = grid.Δxᶠᶠᵃ[:, jrange]
-    Δyᶜᶜᵃ = grid.Δyᶜᶜᵃ[:, jrange]
-    Δyᶠᶜᵃ = grid.Δyᶠᶜᵃ[:, jrange]
-    Δyᶜᶠᵃ = grid.Δyᶜᶠᵃ[:, jrange]
-    Δyᶠᶠᵃ = grid.Δyᶠᶠᵃ[:, jrange]
-    Azᶜᶜᵃ = grid.Azᶜᶜᵃ[:, jrange]
-    Azᶠᶜᵃ = grid.Azᶠᶜᵃ[:, jrange]
-    Azᶜᶠᵃ = grid.Azᶜᶠᵃ[:, jrange]
-    Azᶠᶠᵃ = grid.Azᶠᶠᵃ[:, jrange]
+    Δxᶜᶜᵃ = global_grid.Δxᶜᶜᵃ[:, jrange]
+    Δxᶠᶜᵃ = global_grid.Δxᶠᶜᵃ[:, jrange]
+    Δxᶜᶠᵃ = global_grid.Δxᶜᶠᵃ[:, jrange]
+    Δxᶠᶠᵃ = global_grid.Δxᶠᶠᵃ[:, jrange]
+    Δyᶜᶜᵃ = global_grid.Δyᶜᶜᵃ[:, jrange]
+    Δyᶠᶜᵃ = global_grid.Δyᶠᶜᵃ[:, jrange]
+    Δyᶜᶠᵃ = global_grid.Δyᶜᶠᵃ[:, jrange]
+    Δyᶠᶠᵃ = global_grid.Δyᶠᶠᵃ[:, jrange]
+    Azᶜᶜᵃ = global_grid.Azᶜᶜᵃ[:, jrange]
+    Azᶠᶜᵃ = global_grid.Azᶠᶜᵃ[:, jrange]
+    Azᶜᶠᵃ = global_grid.Azᶜᶠᵃ[:, jrange]
+    Azᶠᶠᵃ = global_grid.Azᶠᶠᵃ[:, jrange]
 
     LY = rank == 0 ? RightConnected : FullyConnected 
     ny = nlocal[rank+1]
 
-    zᵃᵃᶜ   = grid.zᵃᵃᶜ
-    zᵃᵃᶠ   = grid.zᵃᵃᶠ
-    Δzᵃᵃᶜ  = grid.Δzᵃᵃᶜ
-    Δzᵃᵃᶠ  = grid.Δzᵃᵃᶠ
-    radius = grid.radius
+    zᵃᵃᶜ   = global_grid.zᵃᵃᶜ
+    zᵃᵃᶠ   = global_grid.zᵃᵃᶠ
+    Δzᵃᵃᶜ  = global_grid.Δzᵃᵃᶜ
+    Δzᵃᵃᶠ  = global_grid.Δzᵃᵃᶠ
+    radius = global_grid.radius
 
     grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
                     Nx, ny, Nz,
                     Hx, Hy, Hz,
-                    convert(eltype(radius), Lz),
+                    convert(eltype(radius), global_grid.Lz),
                     on_architecture(arch,  λᶜᶜᵃ), on_architecture(arch,  λᶠᶜᵃ), on_architecture(arch,  λᶜᶠᵃ), on_architecture(arch,  λᶠᶠᵃ),
                     on_architecture(arch,  φᶜᶜᵃ), on_architecture(arch,  φᶠᶜᵃ), on_architecture(arch,  φᶜᶠᵃ), on_architecture(arch,  φᶠᶠᵃ), on_architecture(arch, zᵃᵃᶜ),  on_architecture(arch, zᵃᵃᶠ),
                     on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
@@ -97,7 +103,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     arch = architecture(grid)    
     loc  = assumed_field_location(field_name)
     rank = arch.local_rank
-    workers = ranks(arch) 
+    workers = ranks(arch.partition) 
     sign = field_name == :u || field_name == :v ? -1 : 1
 
     west   = regularize_boundary_condition(bcs.west,   grid, loc, 1, LeftBoundary,  prognostic_names)
@@ -122,7 +128,7 @@ end
 function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)    
     rank = arch.local_rank
-    workers = ranks(arch) 
+    workers = ranks(arch.partition) 
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
