@@ -7,6 +7,8 @@ using Oceananigans.DistributedComputations:
 
 using Oceananigans.Grids: topology
 
+import Oceananigans.DistributedComputations: reconstruct_global_grid
+
 const DistributedTripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, <:Distributed}
 
 const DTRG = Union{DistributedTripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:DistributedTripolarGrid}}
@@ -84,7 +86,7 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4
                     on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
                     on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
                     on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
-                    radius, Tripolar())
+                    radius, global_grid.conformal_mapping)
          
     return grid
 end
@@ -152,4 +154,53 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
 
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
+end
+
+function reconstruct_global_grid(grid::DistributedTripolarGrid)
+
+    arch = grid.architecture
+
+    n = size(grid)
+    halo = halo_size(grid)
+    size = map(sum, concatenate_local_sizes(n, arch))
+
+    z = cpu_face_constructor_z(grid)
+
+    child_arch = child_architecture(arch)
+
+    FT = eltype(grid)
+
+    north_poles_latitude = grid.conformal_mapping.north_poles_latitude
+    first_pole_longitude = grid.conformal_mapping.first_pole_longitude
+    southermost_latitude = grid.conformal_mapping.southermost_latitude
+
+    return TripolarGrid(child_arch, FT;
+                        halo, 
+                        size, 
+                        north_poles_latitude,
+                        first_pole_longitude,
+                        southermost_latitude,
+                        z)
+end
+
+function with_halo(new_halo, grid::DistributedTripolarGrid) 
+
+    arch = grid.architecture
+
+    n  = size(grid)
+    N  = map(sum, concatenate_local_sizes(n, arch))
+    z  = cpu_face_constructor_z(grid)
+    FT = eltype(grid)
+
+    north_poles_latitude = grid.conformal_mapping.north_poles_latitude
+    first_pole_longitude = grid.conformal_mapping.first_pole_longitude
+    southermost_latitude = grid.conformal_mapping.southermost_latitude
+
+    return TripolarGrid(arch, FT;
+                        halo = new_halo, 
+                        size = N, 
+                        north_poles_latitude,
+                        first_pole_longitude,
+                        southermost_latitude,
+                        z)
 end
