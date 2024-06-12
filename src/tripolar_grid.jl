@@ -1,5 +1,10 @@
 """ a structure to represent a tripolar grid on a spherical shell """
-struct Tripolar end
+""" a structure to represent a tripolar grid on a spherical shell """
+struct Tripolar
+    north_poles_latitude :: Number
+    first_pole_longitude :: Number
+    southermost_latitude :: Number
+end
 
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
@@ -290,7 +295,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                     on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
                     on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
                     on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
-                    radius, Tripolar())
+                    radius, Tripolar(north_poles_latitude, first_pole_longitude, southermost_latitude))
              
     return grid
 end
