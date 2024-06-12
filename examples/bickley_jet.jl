@@ -1,16 +1,14 @@
 # 
-
-using Oceananigans
-using Oceananigans.Units
-using Printf
 using OrthogonalSphericalShellGrids
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices
+using OrthogonalSphericalShellGrids.Oceananigans
+using OrthogonalSphericalShellGrids.Oceananigans.Units
+using OrthogonalSphericalShellGrids.Oceananigans.Utils: get_cartesian_nodes_and_vertices
 using CairoMakie
-
+using Printf
 
 Nx = 180
 Ny = 90
-Nb = 40
+Nb = 20
 
 first_pole_longitude = λ¹ₚ = 45
 north_poles_latitude = φₚ  = 25
