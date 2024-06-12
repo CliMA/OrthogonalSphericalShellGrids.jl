@@ -156,6 +156,7 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
 end
 
+# Reconstruction the global tripolar grid for visualization purposes
 function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     arch = grid.architecture
