@@ -1,5 +1,4 @@
 """ a structure to represent a tripolar grid on a spherical shell """
-""" a structure to represent a tripolar grid on a spherical shell """
 struct Tripolar
     north_poles_latitude :: Number
     first_pole_longitude :: Number
