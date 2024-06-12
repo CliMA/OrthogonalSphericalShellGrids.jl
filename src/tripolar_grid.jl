@@ -1,9 +1,14 @@
 """ a structure to represent a tripolar grid on a spherical shell """
-struct Tripolar
-    north_poles_latitude :: Number
-    first_pole_longitude :: Number
-    southermost_latitude :: Number
+struct Tripolar{N, F, S}
+    north_poles_latitude :: N
+    first_pole_longitude :: F
+    southermost_latitude :: S
 end
+
+Adapt.adapt_structure(to, t::Tripolar) = 
+    Tripolar(Adapt.adapt(to, t.north_poles_latitude),
+             Adapt.adapt(to, t.first_pole_longitude),
+             Adapt.adapt(to, t.southermost_latitude))
 
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 

@@ -13,11 +13,17 @@ CairoMakie.activate!(type = "svg")
 const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
-example = "generate_grid.jl"
-example_filepath = joinpath(EXAMPLES_DIR, example)
-withenv("JULIA_DEBUG" => "Literate") do
-    Literate.markdown(example_filepath, OUTPUT_DIR;
-                      flavor = Literate.DocumenterFlavor(), execute = true)
+example_scripts = [
+    "generate_grid.jl",
+    "bickley_jet.jl"
+]
+
+for example in example_scripts
+    example_filepath = joinpath(EXAMPLES_DIR, example)
+    withenv("JULIA_DEBUG" => "Literate") do
+        Literate.markdown(example_filepath, OUTPUT_DIR;
+                          flavor = Literate.DocumenterFlavor(), execute = true)
+    end
 end
 
 #####
@@ -28,6 +34,7 @@ pages = [
     "Home" => "index.md",
     "API" => "grids.md",
     "Generate Grid" => "literated/generate_grid.md"
+    "Bickley jet" => "literated/bickley_jet.md"
 ]
 
 #####
