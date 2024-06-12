@@ -1,15 +1,15 @@
 # 
 
-
 using Oceananigans
 using Oceananigans.Units
 using Printf
 using OrthogonalSphericalShellGrids
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices
+using CairoMakie
 
 
-Nx = 360
-Ny = 180
+Nx = 180
+Ny = 90
 Nb = 40
 
 first_pole_longitude = λ¹ₚ = 45
@@ -47,7 +47,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
 
 @info "Building a model..."; start=time_ns()
 
-tracer_advection = Oceananigans.Advection.TracerAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
+tracer_advection   = Oceananigans.Advection.TracerAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
 momentum_advection = WENOVectorInvariant(vorticity_order = 5)
 
 model = HydrostaticFreeSurfaceModel(; grid, free_surface,
@@ -76,7 +76,7 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=3hours)
 
-simulation = Simulation(model, Δt=Δt, stop_time=500days)
+simulation = Simulation(model, Δt=Δt, stop_time=300days)
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "tripolar_bickley.jld2", 
@@ -118,10 +118,13 @@ surface!(ax, xF, yF, zF, color = ζi, colorrange = (-5e-6, 5e-6), colormap = :bw
 ax = LScene(fig[1, 2]; show_axis = false)
 surface!(ax, xC, yC, zC, color = ci, colorrange = (-1, 1), colormap = :magma)
 
-GLMakie.record(fig, "spherical_bickley_with_continents.mp4", 1:Nt, framerate = 5) do i
+CairoMakie.record(fig, "spherical_bickley_with_continents.mp4", 1:Nt, framerate = 5) do i
     @info "printing iteration $i of $Nt"
     iter[] = i
 end
+nothing
+
+# ![](spherical_bickley_with_continents.mp4)
 
 # For fun, since the data on a Tripolar grid is topologically a matrix, let's look at 
 # how it looks projected on a plane! 
@@ -148,7 +151,10 @@ heatmap!(ax, ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
 ax = Axis(fig[1, 2])
 heatmap!(ax, ci, colorrange = (-1, 1), colormap = :magma)
 
-GLMakie.record(fig, "spherical_bickley_on_a_plane.mp4", 10:Nt, framerate = 5) do i
+CairoMakie.record(fig, "spherical_bickley_on_a_plane.mp4", 10:Nt, framerate = 5) do i
     @info "printing iteration $i of $Nt"
     iter[] = i
 end
+nothing
+
+# ![](spherical_bickley_on_a_plane.mp4)
