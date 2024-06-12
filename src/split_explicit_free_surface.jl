@@ -13,14 +13,7 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     Gⱽ = Field((Center, Face,   Nothing), grid)
 
     bcs_fc = positive_zipper_boundary(Gᵁ, grid)
-    bcs_cf = FieldBoundaryConditions(
-            top    = nothing,
-            bottom = nothing,
-            west   = Gⱽ.boundary_conditions.west,
-            east   = Gⱽ.boundary_conditions.east,         
-            south  = Gⱽ.boundary_conditions.south,
-            north  = ZipperBoundaryCondition()
-    )
+    bcs_cf = positive_zipper_boundary(Gⱽ, grid)
     
     # Hᶠᶜ and Hᶜᶠ do not follow the TripolarGrid convention that: fields on faces
     # need the sign to switch at the north halos. For this reason, we need to 
@@ -52,7 +45,6 @@ positive_zipper_boundary(default_field, ::TRG) =
             south  = default_field.boundary_conditions.south,
             north  = ZipperBoundaryCondition()
         )
-
 
 function positive_zipper_boundary(default_field, grid::DTRG)  
         arch = architecture(grid)

@@ -40,8 +40,8 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4
     # Extracting the local range
     nlocal = concatenate_local_sizes(lsize, arch, 2)
     rank   = arch.local_rank
-    jstart = 1 + sum(nlocal[1:rank-1])
-    jend   = rank == workers[2] ? Ny : sum(nlocal[1:rank])
+    jstart = 1 + sum(nlocal[1:rank])
+    jend   = rank == workers[2] ? Ny : sum(nlocal[1:rank+1])
     jrange = jstart - Hy : jend + Hy
 
     # Partitioning the Coordinates
