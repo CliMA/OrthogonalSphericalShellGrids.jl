@@ -5,6 +5,11 @@ struct Tripolar
     southermost_latitude :: Number
 end
 
+Adapt.adapt_structure(to, t::Tripolar) = 
+    Tripolar(Adapt.adapt(to, t.north_poles_latitude),
+             Adapt.adapt(to, t.first_pole_longitude),
+             Adapt.adapt(to, t.southermost_latitude))
+
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
 """
