@@ -74,7 +74,7 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=3hours)
 
-simulation = Simulation(model, Δt=Δt, stop_time=300days)
+simulation = Simulation(model, Δt=Δt, stop_time=50days)
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "tripolar_bickley.jld2", 

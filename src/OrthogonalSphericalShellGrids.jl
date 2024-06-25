@@ -32,43 +32,7 @@ using CUDA: @allowscalar
 ## TODO: remove after accepted in Oceananigans
 
 using Oceananigans.Grids: topology
-using Adapt: adapt
-import Adapt: adapt_structure
-
-function Adapt.adapt_structure(to, grid::OrthogonalSphericalShellGrid)
-    TX, TY, TZ = topology(grid)
-
-    return OrthogonalSphericalShellGrid{TX, TY, TZ}(nothing,
-                                                    grid.Nx, grid.Ny, grid.Nz,
-                                                    grid.Hx, grid.Hy, grid.Hz,
-                                                    grid.Lz,
-                                                    adapt(to, grid.λᶜᶜᵃ),
-                                                    adapt(to, grid.λᶠᶜᵃ),
-                                                    adapt(to, grid.λᶜᶠᵃ),
-                                                    adapt(to, grid.λᶠᶠᵃ),
-                                                    adapt(to, grid.φᶜᶜᵃ),
-                                                    adapt(to, grid.φᶠᶜᵃ),
-                                                    adapt(to, grid.φᶜᶠᵃ),
-                                                    adapt(to, grid.φᶠᶠᵃ),
-                                                    adapt(to, grid.zᵃᵃᶜ),
-                                                    adapt(to, grid.zᵃᵃᶠ),
-                                                    adapt(to, grid.Δxᶜᶜᵃ),
-                                                    adapt(to, grid.Δxᶠᶜᵃ),
-                                                    adapt(to, grid.Δxᶜᶠᵃ),
-                                                    adapt(to, grid.Δxᶠᶠᵃ),
-                                                    adapt(to, grid.Δyᶜᶜᵃ),
-                                                    adapt(to, grid.Δyᶜᶠᵃ),
-                                                    adapt(to, grid.Δyᶠᶜᵃ),
-                                                    adapt(to, grid.Δyᶠᶠᵃ),
-                                                    adapt(to, grid.Δzᵃᵃᶜ),
-                                                    adapt(to, grid.Δzᵃᵃᶠ),
-                                                    adapt(to, grid.Azᶜᶜᵃ),
-                                                    adapt(to, grid.Azᶠᶜᵃ),
-                                                    adapt(to, grid.Azᶜᶠᵃ),
-                                                    adapt(to, grid.Azᶠᶠᵃ),
-                                                    adapt(to, grid.radius),
-                                                    adapt(to, grid.conformal_mapping))
-end
+using Adapt
 
 include("grid_utils.jl")
 include("zipper_boundary_condition.jl")
