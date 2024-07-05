@@ -4,17 +4,17 @@ using Printf
 using OrthogonalSphericalShellGrids
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 
-Nx = 360
+Nx = 320
 Ny = 240
-Nb = 40
+Nb = 20
 
 first_pole_longitude = λ¹ₚ = 45
-north_poles_latitude = φₚ  = 25
+north_poles_latitude = φₚ  = 35
 
 λ²ₚ = λ¹ₚ + 180
 
 # Divide the y-direction in 4 CPU ranks
-arch = CPU() # Distributed(CPU(), partition = Partition(1, 1))
+arch = Distributed(CPU(), partition = Partition(1, 2))
 
 # Build a tripolar grid with singularities at
 # (0, -90), (45, 25), (225, 25)
@@ -42,7 +42,7 @@ C(y, L) = sin(2π * y / L)
 ũ(x, y, ℓ, k) = + ψ̃(x, y, ℓ, k) * (k * tan(k * y) + y / ℓ^2) 
 ṽ(x, y, ℓ, k) = - ψ̃(x, y, ℓ, k) * k * tan(k * x) 
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
 
 @info "Building a model..."; start=time_ns()
 
@@ -75,13 +75,14 @@ set!(model, u=uᵢ, v=vᵢ, c=cᵢ)
 
 wizard = TimeStepWizard(cfl=0.3, max_change=1.1, max_Δt=3hours)
 
-simulation = Simulation(model, Δt=Δt, stop_time=500days)
+simulation = Simulation(model, Δt=Δt, stop_time=1500days)
 
 rank = arch.local_rank
 
 simulation.output_writers[:surface_tracer] = JLD2OutputWriter(model, merge(model.velocities, model.tracers, (; ζ)),
                                                               filename = "tripolar_bickley_$(rank).jld2", 
-                                                              schedule = TimeInterval(1day),
+                                                              schedule = TimeInterval(0.5day),
+                                                              with_halos = true,
                                                               overwrite_existing = true)
 
 progress(sim) = @info @sprintf("rank %d, %s with %s, velocity: %.2e %.2e", rank, prettytime(time(sim)), prettytime(sim.Δt), maximum(sim.model.velocities.u), maximum(sim.model.velocities.v)) 
