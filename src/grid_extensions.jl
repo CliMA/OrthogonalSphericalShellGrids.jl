@@ -72,10 +72,10 @@ function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op
                                             north = north_bc,
                                             top = old_bcs.top,
                                             bottom = old_bcs.bottom)
-
-        buffers = FieldBoundaryBuffers(grid, data, new_bcs)
     end
-    
+
+    buffers = FieldBoundaryBuffers(grid, data, new_bcs)
+
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
 end
 
