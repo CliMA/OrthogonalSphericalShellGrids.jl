@@ -58,19 +58,24 @@ function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
-    default_zipper = ZipperBoundaryCondition(sign(LX, LY))
 
-    north_bc = old_bcs.north isa ZBC ? old_bcs.north : default_zipper
+    if isnothing(old_bcs) || ismissing(old_bcs)
+        new_bcs = old_bcs
+    else
+        default_zipper = ZipperBoundaryCondition(sign(LX, LY))
+
+        north_bc = old_bcs.north isa ZBC ? old_bcs.north : default_zipper
+        
+        new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
+                                            east = old_bcs.east, 
+                                            south = old_bcs.south,
+                                            north = north_bc,
+                                            top = old_bcs.top,
+                                            bottom = old_bcs.bottom)
+
+        buffers = FieldBoundaryBuffers(grid, data, new_bcs)
+    end
     
-    new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
-                                        east = old_bcs.east, 
-                                        south = old_bcs.south,
-                                        north = north_bc,
-                                        top = old_bcs.top,
-                                        bottom = old_bcs.bottom)
-
-    buffers = FieldBoundaryBuffers(grid, data, new_bcs)
-
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
 end
 
