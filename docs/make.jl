@@ -15,7 +15,6 @@ const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 example_scripts = [
     "generate_grid.jl",
-    "bickley_jet.jl"
 ]
 
 for example in example_scripts
@@ -34,7 +33,7 @@ pages = [
     "Home" => "index.md",
     "API" => "grids.md",
     "Generate Grid" => "literated/generate_grid.md"
-    "Bickley jet" => "literated/bickley_jet.md"
+#    "Bickley jet" => "literated/bickley_jet.md"
 ]
 
 #####
