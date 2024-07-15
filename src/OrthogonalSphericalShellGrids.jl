@@ -3,7 +3,6 @@ module OrthogonalSphericalShellGrids
 # The only things we need!
 export TripolarGrid, ZipperBoundaryCondition
 
-using Printf
 using Oceananigans
 using Oceananigans: Face, Center
 using Oceananigans.Grids: R_Earth
@@ -24,7 +23,6 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.Grids: generate_coordinate
 
 using Oceananigans.BoundaryConditions
-using CUDA: @allowscalar
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 
