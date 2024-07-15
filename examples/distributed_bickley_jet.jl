@@ -1,3 +1,5 @@
+using MPI
+MPI.Init()
 using Oceananigans
 using Oceananigans.Units
 using Printf
@@ -13,8 +15,10 @@ north_poles_latitude = φₚ  = 35
 
 λ²ₚ = λ¹ₚ + 180
 
+ranks = MPI.Comm_size(MPI.COMM_WORLD)
+
 # Divide the y-direction in 4 CPU ranks
-arch = Distributed(CPU(), partition = Partition(1, 2))
+arch = Distributed(CPU(), partition = Partition(1, ranks))
 
 # Build a tripolar grid with singularities at
 # (0, -90), (45, 25), (225, 25)
@@ -46,7 +50,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
 
 @info "Building a model..."; start=time_ns()
 
-tracer_advection = Oceananigans.Advection.TracerAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
+tracer_advection = WENO()
 momentum_advection = WENOVectorInvariant(vorticity_order = 5)
 
 model = HydrostaticFreeSurfaceModel(; grid, free_surface,
