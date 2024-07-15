@@ -1,9 +1,8 @@
-using MPI
-MPI.Init()
 using Oceananigans
 using Oceananigans.Units
 using Printf
 using OrthogonalSphericalShellGrids
+using Oceananigans.DistributedComputations: Equal
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 
 Nx = 320
@@ -15,10 +14,8 @@ north_poles_latitude = φₚ  = 35
 
 λ²ₚ = λ¹ₚ + 180
 
-ranks = MPI.Comm_size(MPI.COMM_WORLD)
-
 # Divide the y-direction in 4 CPU ranks
-arch = Distributed(CPU(), partition = Partition(1, ranks))
+arch = Distributed(CPU(), partition = Partition(y = Equal()))
 
 # Build a tripolar grid with singularities at
 # (0, -90), (45, 25), (225, 25)

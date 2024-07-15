@@ -150,10 +150,14 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
 
     new_bcs = inject_halo_communication_boundary_conditions(old_bcs, arch.local_rank, arch.connectivity, topology(grid))
     
-    north_bc = if (rank == processor_size[2] - 1) && !(new_bcs.north isa ZBC)
-        default_zipper
+    if rank == processor_size[2] - 1
+        north_bc = if !(old_bcs.north isa ZBC)
+            default_zipper
+        else
+            old_bcs.north
+        end
     else
-        new_bcs.north
+        north_bc = new_bcs.north
     end
     
     new_bcs = FieldBoundaryConditions(; west  = new_bcs.west, 
