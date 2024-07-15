@@ -43,7 +43,7 @@ C(y, L) = sin(2π * y / L)
 ũ(x, y, ℓ, k) = + ψ̃(x, y, ℓ, k) * (k * tan(k * y) + y / ℓ^2) 
 ṽ(x, y, ℓ, k) = - ψ̃(x, y, ℓ, k) * k * tan(k * x) 
 
-free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
+free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
 
 @info "Building a model..."; start=time_ns()
 
