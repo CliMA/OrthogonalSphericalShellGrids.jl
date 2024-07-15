@@ -148,24 +148,32 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
     default_zipper = ZipperBoundaryCondition(sign(LX, LY))
 
-    new_bcs = inject_halo_communication_boundary_conditions(old_bcs, arch.local_rank, arch.connectivity, topology(grid))
-    
-    if rank == processor_size[2] - 1
-        north_bc = if !(old_bcs.north isa ZBC)
-            default_zipper
-        else
-            old_bcs.north
-        end
+    if isnothing(old_bcs) || ismissing(old_bcs)
+        new_bcs = old_bcs
     else
-        north_bc = new_bcs.north
+        new_bcs = inject_halo_communication_boundary_conditions(old_bcs, arch.local_rank, arch.connectivity, topology(grid))
+        
+        # North boundary conditions are "special". If we are at the top of the domain, i.e.
+        # the last rank, then we need to substitute the BC only if the old one is not already 
+        # a zipper boundary condition. Otherwise we always substitute because we need to 
+        # inject the halo boundary conditions.
+        if rank == processor_size[2] - 1
+            north_bc = if !(old_bcs.north isa ZBC)
+                default_zipper
+            else
+                old_bcs.north
+            end
+        else
+            north_bc = new_bcs.north
+        end
+
+        new_bcs = FieldBoundaryConditions(; west  = new_bcs.west, 
+                                            east  = new_bcs.east, 
+                                            south = new_bcs.south,
+                                            north = north_bc,
+                                            top   = new_bcs.top,
+                                            bottom = new_bcs.bottom)
     end
-    
-    new_bcs = FieldBoundaryConditions(; west  = new_bcs.west, 
-                                        east  = new_bcs.east, 
-                                        south = new_bcs.south,
-                                        north = north_bc,
-                                        top   = new_bcs.top,
-                                        bottom = new_bcs.bottom)
 
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
 
