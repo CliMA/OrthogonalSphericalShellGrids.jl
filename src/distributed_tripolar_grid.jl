@@ -207,25 +207,3 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
                         southermost_latitude,
                         z)
 end
-
-function with_halo(new_halo, grid::DistributedTripolarGrid) 
-
-    arch = grid.architecture
-
-    n  = size(grid)
-    N  = map(sum, concatenate_local_sizes(n, arch))
-    z  = cpu_face_constructor_z(grid)
-    FT = eltype(grid)
-
-    north_poles_latitude = grid.conformal_mapping.north_poles_latitude
-    first_pole_longitude = grid.conformal_mapping.first_pole_longitude
-    southermost_latitude = grid.conformal_mapping.southermost_latitude
-
-    return TripolarGrid(arch, FT;
-                        halo = new_halo, 
-                        size = N, 
-                        north_poles_latitude,
-                        first_pole_longitude,
-                        southermost_latitude,
-                        z)
-end
