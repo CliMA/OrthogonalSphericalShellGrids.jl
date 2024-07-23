@@ -21,7 +21,10 @@ Constructs a tripolar grid on a distributed architecture.
 A distributed tripolar grid is supported only on a Y-partitioning configuration, 
 therefore, only splitting the j-direction is supported for the moment.
 """
-function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4), kwargs...)
+function TripolarGrid(arch::Distributed, FT::DataType = Float64; 
+                      halo = (4, 4, 4),
+                      jrange = nothing,
+                      kwargs...)
 
     workers = ranks(arch.partition)
 
@@ -41,9 +44,12 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64; halo = (4, 4, 4
     # Extracting the local range
     nlocal = concatenate_local_sizes(lsize, arch, 2)
     rank   = arch.local_rank
-    jstart = 1 + sum(nlocal[1:rank])
-    jend   = rank == workers[2] ? Ny : sum(nlocal[1:rank+1])
-    jrange = jstart - Hy : jend + Hy
+    
+    if isnothing(jrange)
+        jstart = 1 + sum(nlocal[1:rank])
+        jend   = rank == workers[2] ? Ny : sum(nlocal[1:rank+1])
+        jrange = jstart - Hy : jend + Hy
+    end
 
     # Partitioning the Coordinates
     λᶠᶠᵃ = partition_tripolar_metric(global_grid, :λᶠᶠᵃ, jrange)
