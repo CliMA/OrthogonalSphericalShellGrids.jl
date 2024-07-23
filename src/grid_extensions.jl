@@ -16,9 +16,13 @@ import Oceananigans.Grids: x_domain, y_domain
 import Oceananigans.Fields: Field
 import Oceananigans.Fields: tupled_fill_halo_regions!
 
+# Horrible, just for this allowscalar! 
+# we should remove this dependency
+using CUDA: @allowscalar
+
 # A tripolar grid is always between 0 and 360 in longitude!
 x_domain(grid::TRG) = 0, 360
-y_domain(grid::TRG) = minimum(grid.φᶠᶠᵃ), 90
+y_domain(grid::TRG) = @allowscalar minimum(grid.φᶠᶠᵃ), 90
 
 # a `TripolarGrid` needs a `ZipperBoundaryCondition` for the north boundary
 # The `sign` 1 for regular tracers and -1 for velocities and signed vectors
