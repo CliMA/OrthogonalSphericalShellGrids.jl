@@ -45,7 +45,7 @@ format = Documenter.HTML(collapselevel = 1,
                          size_threshold = 3 * 1024^2)
 
 makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
-         authors = "Simone Silvestri",
+         authors = "CliMA",
          pages = pages,
          format = format,
          doctest = true, # set to false to speed things up
@@ -63,7 +63,7 @@ makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
 
-deploydocs(repo = "github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl.git",
+deploydocs(repo = "github.com/CliMA/OrthogonalSphericalShellGrids.jl.git",
            forcepush = true,
            push_preview = true,
            devbranch = "main")
