@@ -5,7 +5,7 @@
 <a href="https://mit-license.org">
     <img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square">
 </a>
-<a href="https://simone-silvestri.github.io/OrthogonalSphericalShellGrids.jl/dev">
+<a href="https://clima.github.io/OrthogonalSphericalShellGrids.jl/dev">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-stable%20release-red?style=flat-square">
 </a>
  
