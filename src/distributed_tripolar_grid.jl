@@ -23,7 +23,6 @@ therefore, only splitting the j-direction is supported for the moment.
 """
 function TripolarGrid(arch::Distributed, FT::DataType = Float64; 
                       halo = (4, 4, 4),
-                      jrange = nothing,
                       kwargs...)
 
     workers = ranks(arch.partition)
@@ -45,11 +44,9 @@ function TripolarGrid(arch::Distributed, FT::DataType = Float64;
     nlocal = concatenate_local_sizes(lsize, arch, 2)
     rank   = arch.local_rank
     
-    if isnothing(jrange)
-        jstart = 1 + sum(nlocal[1:rank])
-        jend   = rank == workers[2] ? Ny : sum(nlocal[1:rank+1])
-        jrange = jstart - Hy : jend + Hy
-    end
+    jstart = 1 + sum(nlocal[1:rank])
+    jend   = rank == workers[2] - 1 ? Ny : sum(nlocal[1:rank+1])
+    jrange = jstart - Hy : jend + Hy
 
     # Partitioning the Coordinates
     λᶠᶠᵃ = partition_tripolar_metric(global_grid, :λᶠᶠᵃ, jrange)
