@@ -23,8 +23,8 @@ A distributed tripolar grid is supported only on a Y-partitioning configuration,
 therefore, only splitting the j-direction is supported for the moment.
 """
 function TripolarGrid(arch::Distributed, FT::DataType=Float64;
-    halo=(4, 4, 4),
-    kwargs...)
+                      halo=(4, 4, 4),
+                      kwargs...)
 
     workers = ranks(arch.partition)
 
@@ -83,15 +83,35 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     radius = global_grid.radius
 
     grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
-        Nx, ny, Nz,
-        Hx, Hy, Hz,
-        convert(eltype(radius), global_grid.Lz),
-        on_architecture(arch, λᶜᶜᵃ), on_architecture(arch, λᶠᶜᵃ), on_architecture(arch, λᶜᶠᵃ), on_architecture(arch, λᶠᶠᵃ),
-        on_architecture(arch, φᶜᶜᵃ), on_architecture(arch, φᶠᶜᵃ), on_architecture(arch, φᶜᶠᵃ), on_architecture(arch, φᶠᶠᵃ), on_architecture(arch, zᵃᵃᶜ), on_architecture(arch, zᵃᵃᶠ),
-        on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
-        on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
-        on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
-        radius, global_grid.conformal_mapping)
+                                                               Nx, ny, Nz,
+                                                               Hx, Hy, Hz,
+                                                               convert(eltype(radius), global_grid.Lz),
+                                                               on_architecture(arch, λᶜᶜᵃ),
+                                                               on_architecture(arch, λᶠᶜᵃ),
+                                                               on_architecture(arch, λᶜᶠᵃ),
+                                                               on_architecture(arch, λᶠᶠᵃ),
+                                                               on_architecture(arch, φᶜᶜᵃ),
+                                                               on_architecture(arch, φᶠᶜᵃ),
+                                                               on_architecture(arch, φᶜᶠᵃ),
+                                                               on_architecture(arch, φᶠᶠᵃ),
+                                                               on_architecture(arch, zᵃᵃᶜ),
+                                                               on_architecture(arch, zᵃᵃᶠ),
+                                                               on_architecture(arch, Δxᶜᶜᵃ),
+                                                               on_architecture(arch, Δxᶠᶜᵃ),
+                                                               on_architecture(arch, Δxᶜᶠᵃ),
+                                                               on_architecture(arch, Δxᶠᶠᵃ),
+                                                               on_architecture(arch, Δyᶜᶜᵃ),
+                                                               on_architecture(arch, Δyᶜᶠᵃ),
+                                                               on_architecture(arch, Δyᶠᶜᵃ),
+                                                               on_architecture(arch, Δyᶠᶠᵃ),
+                                                               on_architecture(arch, Δzᵃᵃᶜ),
+                                                               on_architecture(arch, Δzᵃᵃᶠ),
+                                                               on_architecture(arch, Azᶜᶜᵃ),
+                                                               on_architecture(arch, Azᶠᶜᵃ),
+                                                               on_architecture(arch, Azᶜᶠᵃ),
+                                                               on_architecture(arch, Azᶠᶠᵃ),
+                                                               radius,
+                                                               global_grid.conformal_mapping)
 
     return grid
 end
