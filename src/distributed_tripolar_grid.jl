@@ -1,10 +1,9 @@
 using Oceananigans.DistributedComputations
-using Oceananigans.DistributedComputations:
-    local_size,
-    barrier!,
-    ranks,
-    inject_halo_communication_boundary_conditions,
-    concatenate_local_sizes
+using Oceananigans.DistributedComputations: local_size,
+                                            barrier!,
+                                            ranks,
+                                            inject_halo_communication_boundary_conditions,
+                                            concatenate_local_sizes
 
 using Oceananigans.Grids: topology
 
