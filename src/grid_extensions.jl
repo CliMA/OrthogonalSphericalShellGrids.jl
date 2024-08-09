@@ -16,7 +16,7 @@ import Oceananigans.Grids: x_domain, y_domain
 import Oceananigans.Fields: Field
 import Oceananigans.Fields: tupled_fill_halo_regions!
 
-# Horrible, just for this allowscalar! 
+# Horrible, just for this allowscalar!
 # we should remove this dependency
 using CUDA: @allowscalar
 
@@ -47,7 +47,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     return FieldBoundaryConditions(west, east, south, north, bottom, top, immersed)
 end
 
-# HEAVY ASSUMPTION!!!! 
+# HEAVY ASSUMPTION!!!!
 # Fields on edges are signed vectors and fields on
 # nodes and centers are scalars)
 sign(LX, LY) = 1
@@ -69,7 +69,7 @@ function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op
         default_zipper = ZipperBoundaryCondition(sign(LX, LY))
 
         north_bc = old_bcs.north isa ZBC ? old_bcs.north : default_zipper
-        
+
         new_bcs = FieldBoundaryConditions(; west = old_bcs.west, 
                                             east = old_bcs.east, 
                                             south = old_bcs.south,

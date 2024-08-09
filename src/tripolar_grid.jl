@@ -14,15 +14,16 @@ const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGri
 
 """
     TripolarGrid(arch = CPU(), FT::DataType = Float64; 
-                      size, 
-                      southermost_latitude = -80, 
-                      halo                 = (4, 4, 4), 
-                      radius               = R_Earth, 
-                      z                    = (0, 1),
-                      north_poles_latitude = 45,
-                      first_pole_longitude = 0)
+                 size, 
+                 southermost_latitude = -80, 
+                 halo                 = (4, 4, 4), 
+                 radius               = R_Earth, 
+                 z                    = (0, 1),
+                 north_poles_latitude = 45,
+                 first_pole_longitude = 0)
 
-Constructs a tripolar grid on a spherical shell. 
+Construct a tripolar grid on a spherical shell.
+
 NOTE: due to the requirements of the folding at the north edge of the domain, 
 `size[1]` should be an even number.
 
@@ -44,8 +45,8 @@ Keyword Arguments
                           The second singularity will be located at `first_pole_longitude + 180ᵒ`.
 - `north_poles_latitude`: The latitude of the ``north'' singularities.
 
-Returns
-========
+Return
+======
 
 An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
 The north singularities are located at 
@@ -80,8 +81,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # the λ and Z coordinate is the same as for the other grids,
     # but for the φ coordinate we need to remove one point at the north
     # because the the north pole is a `Center`point, not on `Face` point...
-    Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ,   Hλ, longitude, :longitude, CPU())
-    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz,   Hz, z,         :z,         CPU())
+    Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), Nλ, Hλ, longitude, :longitude, CPU())
+    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz, Hz, z,         :z,         CPU())
 
     # The φ coordinate is a bit more complicated because the center points start from
     # southermost_latitude and end at 90ᵒ N.
@@ -263,11 +264,11 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     Hx, Hy, Hz = halo
 
-    latitude_longitude_grid = LatitudeLongitudeGrid(; size, 
-                                                      latitude, 
-                                                      longitude, 
+    latitude_longitude_grid = LatitudeLongitudeGrid(; size,
+                                                      latitude,
+                                                      longitude,
                                                       z,
-                                                      halo, 
+                                                      halo,
                                                       radius)
 
     # Continue the metrics to the south with the LatitudeLongitudeGrid
@@ -291,15 +292,35 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # Final grid with correct metrics
     # TODO: remove `on_architecture(arch, ...)` when we shift grid construction to GPU
     grid = OrthogonalSphericalShellGrid{Periodic, RightConnected, Bounded}(arch,
-                    Nx, Ny, Nz,
-                    Hx, Hy, Hz,
-                    convert(eltype(radius), Lz),
-                    on_architecture(arch,  λᶜᶜᵃ), on_architecture(arch,  λᶠᶜᵃ), on_architecture(arch,  λᶜᶠᵃ), on_architecture(arch,  λᶠᶠᵃ),
-                    on_architecture(arch,  φᶜᶜᵃ), on_architecture(arch,  φᶠᶜᵃ), on_architecture(arch,  φᶜᶠᵃ), on_architecture(arch,  φᶠᶠᵃ), on_architecture(arch, zᵃᵃᶜ),  on_architecture(arch, zᵃᵃᶠ),
-                    on_architecture(arch, Δxᶜᶜᵃ), on_architecture(arch, Δxᶠᶜᵃ), on_architecture(arch, Δxᶜᶠᵃ), on_architecture(arch, Δxᶠᶠᵃ),
-                    on_architecture(arch, Δyᶜᶜᵃ), on_architecture(arch, Δyᶜᶠᵃ), on_architecture(arch, Δyᶠᶜᵃ), on_architecture(arch, Δyᶠᶠᵃ), on_architecture(arch, Δzᵃᵃᶜ), on_architecture(arch, Δzᵃᵃᶠ),
-                    on_architecture(arch, Azᶜᶜᵃ), on_architecture(arch, Azᶠᶜᵃ), on_architecture(arch, Azᶜᶠᵃ), on_architecture(arch, Azᶠᶠᵃ),
-                    radius, Tripolar(north_poles_latitude, first_pole_longitude, southermost_latitude))
+                                                                           Nx, Ny, Nz,
+                                                                           Hx, Hy, Hz,
+                                                                           convert(eltype(radius), Lz),
+                                                                           on_architecture(arch, λᶜᶜᵃ),
+                                                                           on_architecture(arch, λᶠᶜᵃ),
+                                                                           on_architecture(arch, λᶜᶠᵃ),
+                                                                           on_architecture(arch, λᶠᶠᵃ),
+                                                                           on_architecture(arch, φᶜᶜᵃ),
+                                                                           on_architecture(arch, φᶠᶜᵃ),
+                                                                           on_architecture(arch, φᶜᶠᵃ),
+                                                                           on_architecture(arch, φᶠᶠᵃ),
+                                                                           on_architecture(arch, zᵃᵃᶜ),
+                                                                           on_architecture(arch, zᵃᵃᶠ),
+                                                                           on_architecture(arch, Δxᶜᶜᵃ),
+                                                                           on_architecture(arch, Δxᶠᶜᵃ),
+                                                                           on_architecture(arch, Δxᶜᶠᵃ),
+                                                                           on_architecture(arch, Δxᶠᶠᵃ),
+                                                                           on_architecture(arch, Δyᶜᶜᵃ),
+                                                                           on_architecture(arch, Δyᶜᶠᵃ),
+                                                                           on_architecture(arch, Δyᶠᶜᵃ),
+                                                                           on_architecture(arch, Δyᶠᶠᵃ),
+                                                                           on_architecture(arch, Δzᵃᵃᶜ),
+                                                                           on_architecture(arch, Δzᵃᵃᶠ),
+                                                                           on_architecture(arch, Azᶜᶜᵃ),
+                                                                           on_architecture(arch, Azᶠᶜᵃ),
+                                                                           on_architecture(arch, Azᶜᶠᵃ),
+                                                                           on_architecture(arch, Azᶠᶠᵃ),
+                                                                           radius,
+                                                                           Tripolar(north_poles_latitude, first_pole_longitude, southermost_latitude))
              
     return grid
 end
