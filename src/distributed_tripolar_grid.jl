@@ -82,7 +82,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     Δzᵃᵃᶠ = global_grid.Δzᵃᵃᶠ
     radius = global_grid.radius
 
-    grid = OrthogonalSphericalShellGrid{Periodic,LY,Bounded}(arch,
+    grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
         Nx, ny, Nz,
         Hx, Hy, Hz,
         convert(eltype(radius), global_grid.Lz),
@@ -124,17 +124,17 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     processor_size = ranks(arch.partition)
     sign = (field_name == :u) || (field_name == :v) ? -1 : 1
 
-    west = regularize_boundary_condition(bcs.west, grid, loc, 1, LeftBoundary, prognostic_names)
-    east = regularize_boundary_condition(bcs.east, grid, loc, 1, RightBoundary, prognostic_names)
-    south = regularize_boundary_condition(bcs.south, grid, loc, 2, LeftBoundary, prognostic_names)
+    west =  regularize_boundary_condition(bcs.west,  grid, loc, 1, LeftBoundary,  prognostic_names)
+    east =  regularize_boundary_condition(bcs.east,  grid, loc, 1, RightBoundary, prognostic_names)
+    south = regularize_boundary_condition(bcs.south, grid, loc, 2, LeftBoundary,  prognostic_names)
     north = if rank == processor_size[2] - 1
         ZipperBoundaryCondition(sign)
     else
         regularize_boundary_condition(bcs.south, grid, loc, 2, RightBoundary, prognostic_names)
     end
 
-    bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary, prognostic_names)
-    top = regularize_boundary_condition(bcs.top, grid, loc, 3, RightBoundary, prognostic_names)
+    bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary,  prognostic_names)
+    top =    regularize_boundary_condition(bcs.top,    grid, loc, 3, RightBoundary, prognostic_names)
 
     immersed = regularize_immersed_boundary_condition(bcs.immersed, grid, loc, field_name, prognostic_names)
 
