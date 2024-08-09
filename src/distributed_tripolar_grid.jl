@@ -75,10 +75,10 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     LY = rank == 0 ? RightConnected : FullyConnected
     ny = nlocal[rank+1]
 
-    zᵃᵃᶜ = global_grid.zᵃᵃᶜ
-    zᵃᵃᶠ = global_grid.zᵃᵃᶠ
-    Δzᵃᵃᶜ = global_grid.Δzᵃᵃᶜ
-    Δzᵃᵃᶠ = global_grid.Δzᵃᵃᶠ
+    zᵃᵃᶜ   = global_grid.zᵃᵃᶜ
+    zᵃᵃᶠ   = global_grid.zᵃᵃᶠ
+    Δzᵃᵃᶜ  = global_grid.Δzᵃᵃᶜ
+    Δzᵃᵃᶠ  = global_grid.Δzᵃᵃᶠ
     radius = global_grid.radius
 
     grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
