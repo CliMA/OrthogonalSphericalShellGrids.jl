@@ -47,7 +47,7 @@ c₂ == c₃
 
 This is not the case for the v-velocity (or any field on the j-faces) where the last grid point is not repeated.
 """
-ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper, sign)
+ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper(), sign)
 
 const ZBC = BoundaryCondition{<:Zipper}
 

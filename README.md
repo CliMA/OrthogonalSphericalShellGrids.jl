@@ -13,8 +13,11 @@
     <a href="https://mit-license.org">
         <img alt="MIT license" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square">
     </a>
+    <a href="https://clima.github.io/OrthogonalSphericalShellGrids.jl/stable">
+        <img alt="Documentation" src="https://img.shields.io/badge/documentation-stable%20release-blue?style=flat-square">
+    </a>
     <a href="https://clima.github.io/OrthogonalSphericalShellGrids.jl/dev">
-        <img alt="Documentation" src="https://img.shields.io/badge/documentation-stable%20release-red?style=flat-square">
+        <img alt="Documentation" src="https://img.shields.io/badge/documentation-in%20development-orange?style=flat-square">
     </a>
     <a href="https://github.com/CliMA/OrthogonalSphericalShellGrids.jl/actions/workflows/CI.yml?query=branch%3Amain">
         <img alt="Build status" src="https://github.com/simone-silvestri/OrthogonalSphericalShellGrids.jl/actions/workflows/CI.yml/badge.svg?branch=main">

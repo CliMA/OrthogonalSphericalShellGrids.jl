@@ -4,9 +4,10 @@
                                    first_pole_longitude,
                                    focal_distance, Nλ)
 
-Compute the tripolar coordinates for a given set of input parameters. This function follows the formulation described in 
-`Ross J. Murray, "Explicit Generation of Orthogonal Grids for Ocean Models", Journal of Computational Physics,
-Volume 126, Issue 2, 1996, Pages 251-273`.
+Compute the tripolar coordinates for a given set of input parameters. Here, we follow,
+the formulation described by
+
+> Ross J. Murray, (1996). Explicit generation of orthogonal grids for ocean models, _Journal of Computational Physics_, **126(2)**, 251-273.
 
 The tripolar grid is built as a set of cofocal ellipsed and perpendicular hyperbolae.
 The `focal_distance` argument is the distance from the center of the ellipses to the foci.
@@ -27,14 +28,15 @@ While the family of perpendicular hyperbolae obey:
    a²cos²(λ)   a²sin²(λ)
 ```
 
-Where `a` is the `focal_distance` to the center. `λ` is the longitudinal angle and `ψ` is the ``isometric latitude'' 
-defined by Murray (1996) as satisfying:
+Where `a` is the `focal_distance` to the center. `λ` is the longitudinal angle and `ψ` is
+the ``isometric latitude'' defined by Murray (1996) as satisfying:
 
 ```math
     a sinh(ψ) = tand((90 - φ) / 2) 
 ```
 
-The final (x, y) points that define the stereographic projection of the tripolar coordinates are given by:
+The final ``(x, y)`` points that define the stereographic projection of the tripolar
+coordinates are given by:
 
 ```math
     x = a * sinh(ψ) * cos(λ)
@@ -45,7 +47,7 @@ for which it is possible to retrive the longitude and latitude by:
 
 ```math
     λ = - 180 / π * atan(y / x)
-    φ = 90 - 360 / π * atan(sqrt(y² + x²))
+    φ = 90 - 360 / π * atan(sqrt(x² + y²))
 ```
 """
 @kernel function _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 

@@ -10,6 +10,6 @@ arch = CUDA.has_cuda_gpu() ? GPU() : CPU()
 
     # Test the grid?
     grid = TripolarGrid(arch; size = (10, 10, 1))
-    # Test boundary conditions?    
-    
+
+    # Test boundary conditions?
 end
