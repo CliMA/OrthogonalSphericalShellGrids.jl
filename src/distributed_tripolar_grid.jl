@@ -138,7 +138,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     prognostic_names=nothing)
 
     arch = architecture(grid)
-    loc = assumed_field_location(field_name)
+    loc  = assumed_field_location(field_name)
     rank = arch.local_rank
     processor_size = ranks(arch.partition)
     sign = (field_name == :u) || (field_name == :v) ? -1 : 1
