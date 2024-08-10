@@ -1,7 +1,6 @@
 using Documenter
 using OrthogonalSphericalShellGrids
 using Literate
-using Printf
 
 using CairoMakie # to avoid capturing precompilation output by Literate
 CairoMakie.activate!(type = "svg")

@@ -1,14 +1,14 @@
-# # Generate a Tripolar Grid
+# # Visualize a tripolar grid
 #
 # This example demonstrates how to generate a tripolar grid using the OrthogonalSphericalShellGrids
-# package and how to visualize the grid using the CairoMakie package. The example is structured
+# package and how to visualize the grid using the GLMakie package. The example is structured
 # into several key sections, each performing a specific task in the process of creating and
 # visualizing the grid.
 #
 # We begin by importing the required Julia packages.
 # OrthogonalSphericalShellGrids is used for generating the tripolar grid, a type of grid used in
 # geophysical and oceanographic modeling due to its ability to handle polar singularities effectively.
-# CairoMakie is used for visualization purposes, allowing the creation of figures and plots to visualize
+# GLMakie is used for visualization purposes, allowing the creation of figures and plots to visualize
 # the grid.
 
 using OrthogonalSphericalShellGrids
@@ -56,7 +56,7 @@ axS = Axis3(fig[1, 2]; aspect=(1, 1, 1), elevation = -0.9, azimuth = 7, height=1
 
 for ax in (axN, axS)
     scale_factor = 0.99
-    
+
     surface!(ax, xF .* scale_factor, yF .* scale_factor, zF .* scale_factor, color = :blue)
     wireframe!(ax, xF, yF, zF, color = :black)
 
@@ -75,9 +75,13 @@ nothing #hide
 
 # ![](tripolar_grid_nodes.png)
 
-# On the left we see how the North hemisphere has two poles that are shifted at latitude 60; on
-# the right we see that the Southern hemisphere has its pole at the usual South Pole.
+# Above there are two views of the grid: northern hemisphere on the left, southern
+# hemisphere on the right. The actual North and South poles are the red dots.
+# On the left we see how the North hemisphere has does not have a gridline convergence
+# singularity at the actual North Pole but the singularity has moved to the two fictitious
+# poles shifted at latitude 60; on the right we see that the Southern hemisphere has its pole
+# at the usual South Pole.
 #
-# This tripolar configuration are very typical for ocean modeling so that the pole singularity in
-# the Arctic ocean is moved away into the land mases of Russia and Canada; the South pole
-# singularity is already within the land mass of Antarctica so it's all good down there!
+# This tripolar configuration is typically used in ocean modeling so that the pole singularity
+# in the Arctic ocean is moved away into the land mases of Russia and Canada; the South pole
+# singularity is already within the land mass of Antarctica so things are all good down there!
