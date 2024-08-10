@@ -18,14 +18,13 @@ jobs:
         uses: actions/download-artifact@v4
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 1.10
+          version: '1.10'
       - uses: julia-actions/cache@v2
       - name: Install dependencies
         run: |
           xvfb-run -s '-screen 0 1024x768x24' julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.add(name = "DocumenterVitepress", rev = "master")
             Pkg.instantiate()'
         env:
           DISPLAY: ':0'
