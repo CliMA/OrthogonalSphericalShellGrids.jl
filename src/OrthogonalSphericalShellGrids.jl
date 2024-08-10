@@ -26,9 +26,6 @@ using Oceananigans.BoundaryConditions
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 
-## Correcting Oceananigans
-## TODO: remove after accepted in Oceananigans
-
 using Oceananigans.Grids: topology
 using Adapt
 
