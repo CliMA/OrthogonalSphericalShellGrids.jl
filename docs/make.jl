@@ -52,7 +52,6 @@ makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          clean = true,
          checkdocs = :exports) # set to :none to speed things up
 
-deploydocs(repo = "github.com/CliMA/OrthogonalSphericalShellGrids.jl.git",
-           forcepush = true,
+deploydocs(forcepush = true,
            push_preview = true,
            devbranch = "main")
