@@ -20,11 +20,12 @@ using CairoMakie
 #
 # The grid is generated via `OrthogonalSphericalShellGrids.TripolarGrid` method by
 # specifying the grid size and the latitude of the "north" singularities. Here, the grid
-# has a lateral resolution of 6 degrees (90 x 45 grid points in the horizontal) and the
+# has a lateral resolution of 6 degrees (60 x 30 grid points in the horizontal) and the
 # north hemisphere singularities at 60 degrees latitude. This setup creates a grid that
 # covers the globe with a specific focus on handling the complexities near the North pole.
 
-grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (60, 30, 1), north_poles_latitude = 60)
+grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (60, 30, 1),
+                                                  north_poles_latitude = 60)
 
 # ## Retrieving the nodes
 #
