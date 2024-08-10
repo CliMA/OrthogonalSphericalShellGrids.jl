@@ -2,8 +2,8 @@ using Documenter
 using OrthogonalSphericalShellGrids
 using Literate
 
-using CairoMakie # to avoid capturing precompilation output by Literate
-CairoMakie.activate!(type = "svg")
+using GLMakie # to avoid capturing precompilation output by Literate
+GLMakie.activate!(type = "svg")
 
 #####
 ##### Generate examples
