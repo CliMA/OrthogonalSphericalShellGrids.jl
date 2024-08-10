@@ -70,7 +70,7 @@ for ax in (axN, axS)
     hidespines!(ax)
 end
 
-save("tripolar_grid_nodes.png", fig)
+save("tripolar_grid_nodes.png", fig, px_per_unit = 2)
 nothing #hide
 
 # ![](tripolar_grid_nodes.png)
