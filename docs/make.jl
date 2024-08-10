@@ -52,17 +52,6 @@ makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          clean = true,
          checkdocs = :exports) # set to :none to speed things up
 
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
-#=deploydocs(
-    repo = "<repository url>"
-)=#
-
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
-
 deploydocs(repo = "github.com/CliMA/OrthogonalSphericalShellGrids.jl.git",
            forcepush = true,
            push_preview = true,
