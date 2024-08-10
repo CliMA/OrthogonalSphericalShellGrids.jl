@@ -19,10 +19,11 @@ using CairoMakie
 # ## Grid generation
 #
 # The grid is generated via `OrthogonalSphericalShellGrids.TripolarGrid` method by
-# specifying the grid size and the latitude of the "north" singularities. Here, the grid
-# has a lateral resolution of 6 degrees (60 x 30 grid points in the horizontal) and the
-# north hemisphere singularities at 60 degrees latitude. This setup creates a grid that
-# covers the globe with a specific focus on handling the complexities near the North pole.
+# specifying the grid size and the latitude of the "north" singularities. Here, we use
+# a lateral resolution of 6 degrees (60 x 30 grid points in the horizontal) and we
+# configure the North hemisphere singularities to be at 60 degrees latitude. This setup
+# creates a grid that covers the globe with a specific focus on handling the complexities
+# near the North pole.
 
 grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (60, 30, 1),
                                                   north_poles_latitude = 60)
@@ -50,11 +51,12 @@ xC, yC, zC = cartesian_nodes
 # while the Center-Center nodes are visualized with blue surfaces and wireframes.
 
 fig = Figure(size=(1200, 600))
-axN = Axis3(fig[1, 1]; aspect=(1, 1, 1), elevation = 0.9, azimuth = 7, height=1500)
+axN = Axis3(fig[1, 1]; aspect=(1, 1, 1), elevation = +0.9, azimuth = 7, height=1500)
 axS = Axis3(fig[1, 2]; aspect=(1, 1, 1), elevation = -0.9, azimuth = 7, height=1500)
 
 for ax in (axN, axS)
     scale_factor = 0.99
+    
     surface!(ax, xF .* scale_factor, yF .* scale_factor, zF .* scale_factor, color = :blue)
     wireframe!(ax, xF, yF, zF, color = :black)
 
@@ -64,7 +66,6 @@ for ax in (axN, axS)
     hidedecorations!(ax)
     hidespines!(ax)
 end
-rowsize!(fig.layout, 1, Relative(2.5))
 
 save("tripolar_grid_nodes.png", fig)
 nothing #hide
