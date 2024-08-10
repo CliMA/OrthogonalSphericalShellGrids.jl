@@ -1,10 +1,8 @@
 using Documenter
 using OrthogonalSphericalShellGrids
 using Literate
-using Printf
 
-using CairoMakie # to avoid capturing precompilation output by Literate
-CairoMakie.activate!(type = "svg")
+using GLMakie # to avoid capturing precompilation output by Literate
 
 #####
 ##### Generate examples
@@ -14,7 +12,7 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/literated")
 
 example_scripts = [
-    "generate_grid.jl",
+    "visualize_tripolar_grid.jl",
 ]
 
 for example in example_scripts
@@ -32,7 +30,7 @@ end
 pages = [
     "Home" => "index.md",
     "API" => "grids.md",
-    "Generate Grid" => "literated/generate_grid.md"
+    "Tripolar Grid" => "literated/visualize_tripolar_grid.md"
 #    "Bickley jet" => "literated/bickley_jet.md"
 ]
 
@@ -51,17 +49,6 @@ makedocs(sitename = "OrthogonalSphericalShellGrids.jl",
          doctest = true, # set to false to speed things up
          clean = true,
          checkdocs = :exports) # set to :none to speed things up
-
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
-#=deploydocs(
-    repo = "<repository url>"
-)=#
-
-# Documenter can also automatically deploy documentation to gh-pages.
-# See "Hosting Documentation" and deploydocs() in the Documenter manual
-# for more information.
 
 deploydocs(repo = "github.com/CliMA/OrthogonalSphericalShellGrids.jl.git",
            forcepush = true,
