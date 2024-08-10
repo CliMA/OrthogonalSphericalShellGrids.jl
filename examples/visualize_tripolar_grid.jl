@@ -14,7 +14,7 @@
 using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: Face, Center
 using OrthogonalSphericalShellGrids: get_cartesian_nodes_and_vertices
-using CairoMakie
+using GLMakie
 
 # ## Grid generation
 #
@@ -62,6 +62,9 @@ for ax in (axN, axS)
 
     surface!(ax, xC .* scale_factor, yC .* scale_factor, zC .* scale_factor, color = :blue)
     wireframe!(ax, xC, yC, zC, color = :blue)
+
+    scatter!(ax, 0, 0, +1, color=:red, markersize=15)
+    scatter!(ax, 0, 0, -1, color=:red, markersize=15)
 
     hidedecorations!(ax)
     hidespines!(ax)
