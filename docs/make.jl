@@ -29,9 +29,11 @@ end
 
 pages = [
     "Home" => "index.md",
-    "API" => "grids.md",
-    "Tripolar Grid" => "literated/visualize_tripolar_grid.md"
-#    "Bickley jet" => "literated/bickley_jet.md"
+    "Examples" => [
+        "Tripolar Grid" => "literated/visualize_tripolar_grid.md",
+        # "Bickley jet" => "literated/bickley_jet.md",
+    ],
+"API" => "API.md",
 ]
 
 #####
