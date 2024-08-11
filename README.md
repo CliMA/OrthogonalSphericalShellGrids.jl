@@ -25,6 +25,10 @@
 </p>
 
 
+OrthogonalSphericalShellGrids includes tools for generating spherical shell grids for ocean simulations with Oceananigans.
+
+OrthogonalSphericalShellGrids is developed by the [Climate Modeling Alliance](https://clima.caltech.edu).
+
 ## Quick install
 
 OrthogonalSphericalShellGrids is a [registered Julia package](https://julialang.org/packages/). So to install it,

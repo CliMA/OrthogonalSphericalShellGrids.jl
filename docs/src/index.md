@@ -1,6 +1,6 @@
 # OrthogonalSphericalShellGrids.jl
 
-Documentation for OrthogonalSphericalShellGrids that includes tools for generating spherical shell grids for ocean simulations with Oceananigans.
+OrthogonalSphericalShellGrids includes tools for generating spherical shell grids for ocean simulations with Oceananigans.
 
 OrthogonalSphericalShellGrids is developed by the [Climate Modeling Alliance](https://clima.caltech.edu).
 
