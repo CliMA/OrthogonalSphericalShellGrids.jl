@@ -13,19 +13,21 @@ Adapt.adapt_structure(to, t::Tripolar) =
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
 """
-    TripolarGrid(arch = CPU(), FT::DataType = Float64; 
-                 size, 
-                 southermost_latitude = -80, 
-                 halo                 = (4, 4, 4), 
-                 radius               = R_Earth, 
+    TripolarGrid(arch = CPU(), FT::DataType = Float64;
+                 size,
+                 southermost_latitude = -80,
+                 halo                 = (4, 4, 4),
+                 radius               = R_Earth,
                  z                    = (0, 1),
                  north_poles_latitude = 45,
                  first_pole_longitude = 0)
 
 Construct a tripolar grid on a spherical shell.
 
-NOTE: due to the requirements of the folding at the north edge of the domain, 
-`size[1]` should be an even number.
+!!! warning "Longitude coordinate must have even number of cells"
+    `size` is a 3-tuple of the grid size in longitude, latitude, and vertical directions.
+    Due to requirements of the folding at the north edge of the domain, the longitude size
+    of the grid (i.e., the first component of `size`) _must_ be an even number!
 
 Positional Arguments
 ====================
@@ -36,20 +38,20 @@ Positional Arguments
 Keyword Arguments
 =================
 
-- `size`: The number of cells in the (longitude, latitude, z) dimensions.
+- `size`: The number of cells in the (longitude, latitude, vertical) dimensions.
 - `southermost_latitude`: The southernmost `Center` latitude of the grid. Default is -80.
-- `halo`: The halo size in the (longitude, latitude, z) dimensions. Default is (4, 4, 4).
+- `halo`: The halo size in the (longitude, latitude, vertical) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
-- `z`: The z-coordinate range of the grid. Default is (0, 1).
-- `first_pole_longitude`: The longitude of the first ``north'' singularity. 
-                          The second singularity will be located at `first_pole_longitude + 180ᵒ`.
-- `north_poles_latitude`: The latitude of the ``north'' singularities.
+- `z`: The vertical ``z``-coordinate range of the grid. Default is (0, 1).
+- `first_pole_longitude`: The longitude of the first "north" singularity.
+                          The second singularity is located at `first_pole_longitude + 180ᵒ`.
+- `north_poles_latitude`: The latitude of the "north" singularities.
 
 Return
 ======
 
 An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
-The north singularities are located at 
+The north singularities are located at
 
 `i = 1, j = Nφ` and `i = Nλ ÷ 2 + 1, j = Nλ` 
 """
@@ -60,7 +62,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                       radius               = R_Earth, 
                       z                    = (0, 1),
                       north_poles_latitude = 45,
-                      first_pole_longitude = 0)  # The second pole will be at `λ = first_pole_longitude + 180ᵒ`
+                      first_pole_longitude = 0)  # The second pole is at `λ = first_pole_longitude + 180ᵒ`
 
     # TODO: change a couple of allocations here and there to be able 
     # to construct the grid on the GPU. This is not a huge problem as

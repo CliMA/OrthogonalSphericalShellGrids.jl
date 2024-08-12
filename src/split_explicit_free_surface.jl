@@ -1,6 +1,9 @@
 using Oceananigans.Grids: halo_size, with_halo
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState, SplitExplicitFreeSurface, calculate_column_height! 
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: augmented_kernel_offsets, augmented_kernel_size
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState,
+                                                        SplitExplicitFreeSurface,
+                                                        calculate_column_height!,
+                                                        augmented_kernel_offsets,
+                                                        augmented_kernel_size
 
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface, SplitExplicitAuxiliaryFields
 
@@ -36,12 +39,12 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
 end
 
-positive_zipper_boundary(default_field, ::TRG) = 
+positive_zipper_boundary(default_field, ::TRG) =
         FieldBoundaryConditions(
             top    = nothing,
             bottom = nothing,
             west   = default_field.boundary_conditions.west,
-            east   = default_field.boundary_conditions.east,         
+            east   = default_field.boundary_conditions.east,
             south  = default_field.boundary_conditions.south,
             north  = ZipperBoundaryCondition()
         )
@@ -55,7 +58,7 @@ function positive_zipper_boundary(default_field, grid::DTRG)
                                 top    = nothing,
                                 bottom = nothing,
                                 west   = default_field.boundary_conditions.west,
-                                east   = default_field.boundary_conditions.east,         
+                                east   = default_field.boundary_conditions.east,
                                 south  = default_field.boundary_conditions.south,
                                 north  = ZipperBoundaryCondition()
                         )
@@ -83,7 +86,7 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
         old_halos  = halo_size(grid)
         Nsubsteps  = length(settings.substepping.averaging_weights)
 
-        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1)         
+        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1)
         extended_grid  = with_halo(extended_halos, grid)
 
         Nze = size(extended_grid, 3)
