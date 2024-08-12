@@ -15,39 +15,39 @@ The `focal_distance` argument is the distance from the center of the ellipses to
 The family of ellipses obeys:
 
 ```math
-       x²          y²
-   --------- + ---------  = 1
-   a²cosh²(ψ)  a²sinh²(ψ)
+\frac{x²}{a² \cosh²(ψ)} + \frac{y²}{a² \sinh²(ψ)} = 1
 ```
 
 While the family of perpendicular hyperbolae obey:
 
 ```math
-       x²          y²
-   --------- + ---------  = 1
-   a²cos²(λ)   a²sin²(λ)
+\frac{x²}{a² \cosh²(λ)} + \frac{y²}{a² \sinh²(λ)} = 1
 ```
 
-Where `a` is the `focal_distance` to the center. `λ` is the longitudinal angle and `ψ` is
-the ``isometric latitude'' defined by Murray (1996) as satisfying:
+Where ``a`` is the `focal_distance` to the center, ``λ`` is the longitudinal angle,
+and ``ψ`` is the "isometric latitude", defined by Murray (1996) and satisfying:
 
 ```math
-    a sinh(ψ) = tand((90 - φ) / 2) 
+    a \sinh(ψ) = \tand((90 - φ) / 2)
 ```
 
 The final ``(x, y)`` points that define the stereographic projection of the tripolar
 coordinates are given by:
 
 ```math
-    x = a * sinh(ψ) * cos(λ)
-    y = a * sinh(ψ) * sin(λ)
+    \begin{align}
+    x & = a sinh(ψ) \cos(λ) \\
+    y & = a sinh(ψ) \sin(λ)
+    \end{align}
 ```
 
 for which it is possible to retrive the longitude and latitude by:
 
 ```math
-    λ = - 180 / π * atan(y / x)
-    φ = 90 - 360 / π * atan(sqrt(x² + y²))
+    \begin{align}
+    λ &= - 180 / π \tan⁻¹(y / x) \\
+    φ &= 90 - 360 / π \tan⁻¹(\sqrt(x² + y²))
+    \end{align}
 ```
 """
 @kernel function _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
