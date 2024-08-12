@@ -42,16 +42,16 @@ Keyword Arguments
 - `southermost_latitude`: The southernmost `Center` latitude of the grid. Default is -80.
 - `halo`: The halo size in the (longitude, latitude, vertical) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
-- `z`: The vertical z-coordinate range of the grid. Default is (0, 1).
-- `first_pole_longitude`: The longitude of the first ``north'' singularity. 
-                          The second singularity will be located at `first_pole_longitude + 180ᵒ`.
-- `north_poles_latitude`: The latitude of the ``north'' singularities.
+- `z`: The vertical ``z``-coordinate range of the grid. Default is (0, 1).
+- `first_pole_longitude`: The longitude of the first "north" singularity.
+                          The second singularity is located at `first_pole_longitude + 180ᵒ`.
+- `north_poles_latitude`: The latitude of the "north" singularities.
 
 Return
 ======
 
 An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
-The north singularities are located at 
+The north singularities are located at
 
 `i = 1, j = Nφ` and `i = Nλ ÷ 2 + 1, j = Nλ` 
 """
