@@ -24,7 +24,7 @@ const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGri
 
 Construct a tripolar grid on a spherical shell.
 
-!!! warning "An optional title"
+!!! warning "Longitude coordinate must have even number of cells"
     `size` is a 3-tuple of the grid size in longitude, latitude, and vertical directions.
     Due to requirements of the folding at the north edge of the domain, the longitude size
     of the grid (i.e., the first component of `size`) _must_ be an even number!
