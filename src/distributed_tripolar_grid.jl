@@ -225,7 +225,7 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     return TripolarGrid(child_arch, FT;
                         halo,
-                        global_size,
+                        size = global_size,
                         north_poles_latitude,
                         first_pole_longitude,
                         southermost_latitude,
