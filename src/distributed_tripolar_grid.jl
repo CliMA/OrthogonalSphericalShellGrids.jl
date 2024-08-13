@@ -6,6 +6,7 @@ using Oceananigans.DistributedComputations: local_size,
                                             concatenate_local_sizes
 
 using Oceananigans.Grids: topology
+using Base
 
 import Oceananigans.DistributedComputations: reconstruct_global_grid
 
@@ -191,11 +192,11 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
         end
 
         new_bcs = FieldBoundaryConditions(; west=new_bcs.west,
-            east=new_bcs.east,
-            south=new_bcs.south,
-            north=north_bc,
-            top=new_bcs.top,
-            bottom=new_bcs.bottom)
+                                            east=new_bcs.east,
+                                            south=new_bcs.south,
+                                            north=north_bc,
+                                            top=new_bcs.top,
+                                            bottom=new_bcs.bottom)
     end
 
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
@@ -208,9 +209,9 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     arch = grid.architecture
 
-    n = size(grid)
+    n = Base.size(grid)
     halo = halo_size(grid)
-    size = map(sum, concatenate_local_sizes(n, arch))
+    global_size = map(sum, concatenate_local_sizes(n, arch))
 
     z = cpu_face_constructor_z(grid)
 
@@ -223,10 +224,10 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
     southermost_latitude = grid.conformal_mapping.southermost_latitude
 
     return TripolarGrid(child_arch, FT;
-        halo,
-        size,
-        north_poles_latitude,
-        first_pole_longitude,
-        southermost_latitude,
-        z)
+                        halo,
+                        global_size,
+                        north_poles_latitude,
+                        first_pole_longitude,
+                        southermost_latitude,
+                        z)
 end
