@@ -5,29 +5,22 @@ export TripolarGrid, ZipperBoundaryCondition
 
 using Oceananigans
 using Oceananigans: Face, Center
-using Oceananigans.Grids: R_Earth
-
-using Oceananigans.Fields: index_binary_search
 using Oceananigans.Architectures: device, on_architecture
-using JLD2
-using Adapt 
-
-using Oceananigans.Grids: halo_size, spherical_area_quadrilateral
-using Oceananigans.Grids: lat_lon_to_cartesian
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices
-using OffsetArrays
+using Oceananigans.BoundaryConditions
+using Oceananigans.Fields: index_binary_search
+using Oceananigans.Grids: R_Earth, 
+                          halo_size, spherical_area_quadrilateral,
+                          lat_lon_to_cartesian, generate_coordinate, topology
 using Oceananigans.Operators
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 
+using Adapt 
+using JLD2
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
-using Oceananigans.Grids: generate_coordinate
-
-using Oceananigans.BoundaryConditions
+using OffsetArrays
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
-
-using Oceananigans.Grids: topology
-using Adapt
 
 include("grid_utils.jl")
 include("zipper_boundary_condition.jl")
