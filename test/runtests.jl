@@ -1,5 +1,6 @@
 using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids.Oceananigans
+using Oceananigans: GPU, CPU
 using Oceananigans.CUDA
 using Test
 
