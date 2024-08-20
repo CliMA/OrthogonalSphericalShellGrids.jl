@@ -14,68 +14,9 @@ using Oceananigans.Utils: KernelParameters
 import Oceananigans.BoundaryConditions: fill_halo_regions!
 import Oceananigans.DistributedComputations: synchronize_communication!
 
-import Oceananigans.DistributedComputations: north_recv_tag, 
-                                             north_send_tag,
-                                             northwest_recv_tag, 
-                                             northwest_send_tag,
-                                             northeast_recv_tag, 
-                                             northeast_send_tag
+import Oceananigans.Fields: create_buffer_y, create_buffer_corner
 
 const DistributedZipper = BoundaryCondition{<:DistributedCommunication, <:ZipperHaloCommunicationRanks}
-
-ID_DIGITS = 2
-
-sides  = (:west, :east, :south, :north, :southwest, :southeast, :northwest, :northeast)
-side_id = Dict(side => n-1 for (n, side) in enumerate(sides))
-
-# Change these and we are golden!
-function north_recv_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 8 : string(side_id[:south])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
-
-function north_send_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 8 : string(side_id[:north])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
-
-function northwest_recv_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:southeast])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
-
-function northwest_send_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:northwest])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
-
-function northeast_recv_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 10 : string(side_id[:southwest])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
-
-function northeast_send_tag(arch, grid::DTRG, location)
-    field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
-    loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
-    last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 10 : string(side_id[:northeast])
-    return parse(Int, field_id * loc_digit * side_digit)
-end
 
 switch_north_halos!(c, north_bc, grid, loc) = nothing
 
@@ -84,13 +25,12 @@ function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc)
     Hx, Hy, _  = halo_size(grid)
     Nx, Ny, Nz = size(grid)
 
-    params = KernelParameters((Nx+2Hx, Nz), (-Hx, 0))
+    params = KernelParameters((Nx+2Hx-2, Nz), (-Hx+1, 0))
 
-    launch!(architecture(grid), grid, params, grid, loc, sign, c)
+    launch!(architecture(grid), grid, params, _switch_north_halos!, grid, loc, sign, c)
 
     return nothing
 end
-
 
 @kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
     i, k = @index(Global, NTuple)
@@ -99,8 +39,8 @@ end
     i′ = Nx - i + 2 
     Hy = grid.Hy
     
-    for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+    for j = 1 : Hy - 1 # TO CORRECTED!!!
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j, k] 
     end
 end
 
@@ -111,8 +51,8 @@ end
     i′ = Nx - i + 1
     Hy = grid.Hy
     
-    for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
+    for j = 1 : Hy - 1
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j + 1, k] 
     end
 end
 
@@ -123,12 +63,12 @@ end
     i′ = Nx - i + 1
     Hy = grid.Hy
     
-    for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+    for j = 1 : Hy - 1
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j, k]
     end
 end
 
-function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; fill_boundary_normal_velocities = true, kwargs...)
+function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)
     if fill_boundary_normal_velocities
         fill_open_boundary_regions!(c, bcs, indices, loc, grid, args...; kwargs...)
     end
@@ -141,10 +81,10 @@ function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffe
     number_of_tasks = length(fill_halos!)
 
     for task = 1:number_of_tasks
-        fill_halo_event!(c, fill_halos![task], bcs[task], indices, loc, arch, grid, buffers, args...; kwargs...)
+        fill_halo_event!(c, fill_halos![task], bcs[task], indices, loc, arch, grid, buffers, args...; only_local_halos, kwargs...)
     end
 
-    fill_corners!(c, arch.connectivity, indices, loc, arch, grid, buffers, args...; kwargs...)
+    fill_corners!(c, arch.connectivity, indices, loc, arch, grid, buffers, args...; only_local_halos, kwargs...)
     
     # We increment the tag counter only if we have actually initiated the MPI communication.
     # This is the case only if at least one of the boundary conditions is a distributed communication 
@@ -155,7 +95,7 @@ function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffe
         arch.mpi_tag[] += 1
     end
         
-    switch_north_halos!(parent(c), north_bc, grid, loc)
+    switch_north_halos!(c, north_bc, grid, loc)
     
     return nothing
 end
@@ -177,7 +117,7 @@ function synchronize_communication!(field::Field{<:Any, <:Any, <:Any, <:Any, <:D
     recv_from_buffers!(field.data, field.boundary_buffers, field.grid)
 
     north_bc = field.boundary_conditions.north
-    switch_north_halos!(parent(field.data), north_bc, field.grid, location(field))
+    switch_north_halos!(field, north_bc, field.grid, location(field))
 
     return nothing
 end

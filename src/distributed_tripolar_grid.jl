@@ -1,6 +1,9 @@
+using MPI
+using Oceananigans.BoundaryConditions: DistributedCommunicationBoundaryCondition
 using Oceananigans.DistributedComputations
 using Oceananigans.DistributedComputations: local_size,
                                             barrier!,
+                                            all_reduce,
                                             ranks,
                                             inject_halo_communication_boundary_conditions,
                                             concatenate_local_sizes
@@ -27,8 +30,14 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
 
     workers = ranks(arch.partition)
 
-    workers[1] != 1 &&
-        throw(ArgumentError("The tripolar grid is supported only on a Y-partitioning configuration"))
+    # Check that partitioning in x is correct:
+    try
+       if isodd(arch.partition.x) 
+            throw(ArgumentError("The number of partitionsOnly even partitioning in x is supported with the TripolarGrid"))
+       end
+    catch 
+        throw(ArgumentError("The x partition $(arch.partition.x) is not supported. The partition in x must be an even number. "))
+    end
 
     Hx, Hy, Hz = halo
 
@@ -46,12 +55,14 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     yrank   = arch.local_index[2] - 1
     xrank   = arch.local_index[1] - 1
     
+    # The j-range
     jstart = 1 + sum(nylocal[1:yrank])
-    jend = yrank == workers[2] - 1 ? Ny : sum(nlocal[1:yrank+1])
+    jend = yrank == workers[2] - 1 ? Ny : sum(nylocal[1:yrank+1])
     jrange = jstart-Hy:jend+Hy
 
+    # The i-range
     istart = 1 + sum(nxlocal[1:xrank])
-    iend = xrank == workers[1] - 1 ? Nx : sum(nlocal[1:xrank+1])
+    iend = xrank == workers[1] - 1 ? Nx : sum(nxlocal[1:xrank+1])
     irange = istart-Hx:iend+Hx
 
     # Partitioning the Coordinates
@@ -79,6 +90,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     Azᶠᶠᵃ = partition_tripolar_metric(global_grid, :Azᶠᶠᵃ, irange, jrange)
 
     LY = yrank == 0 ? RightConnected : FullyConnected
+    LX = workers[1] == 1 ? Periodic : FullyConnected
     ny = nylocal[yrank+1]
     nx = nxlocal[xrank+1]
 
@@ -88,36 +100,44 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     Δzᵃᵃᶠ  = global_grid.Δzᵃᵃᶠ
     radius = global_grid.radius
 
-    grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
-                                                               nx, ny, Nz,
-                                                               Hx, Hy, Hz,
-                                                               convert(eltype(radius), global_grid.Lz),
-                                                               on_architecture(arch, λᶜᶜᵃ),
-                                                               on_architecture(arch, λᶠᶜᵃ),
-                                                               on_architecture(arch, λᶜᶠᵃ),
-                                                               on_architecture(arch, λᶠᶠᵃ),
-                                                               on_architecture(arch, φᶜᶜᵃ),
-                                                               on_architecture(arch, φᶠᶜᵃ),
-                                                               on_architecture(arch, φᶜᶠᵃ),
-                                                               on_architecture(arch, φᶠᶠᵃ),
-                                                               on_architecture(arch, zᵃᵃᶜ),
-                                                               on_architecture(arch, zᵃᵃᶠ),
-                                                               on_architecture(arch, Δxᶜᶜᵃ),
-                                                               on_architecture(arch, Δxᶠᶜᵃ),
-                                                               on_architecture(arch, Δxᶜᶠᵃ),
-                                                               on_architecture(arch, Δxᶠᶠᵃ),
-                                                               on_architecture(arch, Δyᶜᶜᵃ),
-                                                               on_architecture(arch, Δyᶜᶠᵃ),
-                                                               on_architecture(arch, Δyᶠᶜᵃ),
-                                                               on_architecture(arch, Δyᶠᶠᵃ),
-                                                               on_architecture(arch, Δzᵃᵃᶜ),
-                                                               on_architecture(arch, Δzᵃᵃᶠ),
-                                                               on_architecture(arch, Azᶜᶜᵃ),
-                                                               on_architecture(arch, Azᶠᶜᵃ),
-                                                               on_architecture(arch, Azᶜᶠᵃ),
-                                                               on_architecture(arch, Azᶠᶠᵃ),
-                                                               radius,
-                                                               global_grid.conformal_mapping)
+    # Make sure the northwest and northeast connectivities are correct
+    north_recv_rank = north_receiving_rank(arch)
+
+    if yrank == workers[2] - 1 && workers[1] != 1 
+        arch.connectivity.northeast = north_recv_rank
+        arch.connectivity.northwest = north_recv_rank
+    end
+
+    grid = OrthogonalSphericalShellGrid{LX, LY, Bounded}(arch,
+                                                         nx, ny, Nz,
+                                                         Hx, Hy, Hz,
+                                                         convert(eltype(radius), global_grid.Lz),
+                                                         on_architecture(arch, λᶜᶜᵃ),
+                                                         on_architecture(arch, λᶠᶜᵃ),
+                                                         on_architecture(arch, λᶜᶠᵃ),
+                                                         on_architecture(arch, λᶠᶠᵃ),
+                                                         on_architecture(arch, φᶜᶜᵃ),
+                                                         on_architecture(arch, φᶠᶜᵃ),
+                                                         on_architecture(arch, φᶜᶠᵃ),
+                                                         on_architecture(arch, φᶠᶠᵃ),
+                                                         on_architecture(arch, zᵃᵃᶜ),
+                                                         on_architecture(arch, zᵃᵃᶠ),
+                                                         on_architecture(arch, Δxᶜᶜᵃ),
+                                                         on_architecture(arch, Δxᶠᶜᵃ),
+                                                         on_architecture(arch, Δxᶜᶠᵃ),
+                                                         on_architecture(arch, Δxᶠᶠᵃ),
+                                                         on_architecture(arch, Δyᶜᶜᵃ),
+                                                         on_architecture(arch, Δyᶜᶠᵃ),
+                                                         on_architecture(arch, Δyᶠᶜᵃ),
+                                                         on_architecture(arch, Δyᶠᶠᵃ),
+                                                         on_architecture(arch, Δzᵃᵃᶜ),
+                                                         on_architecture(arch, Δzᵃᵃᶠ),
+                                                         on_architecture(arch, Azᶜᶜᵃ),
+                                                         on_architecture(arch, Azᶠᶜᵃ),
+                                                         on_architecture(arch, Azᶜᶠᵃ),
+                                                         on_architecture(arch, Azᶠᶠᵃ),
+                                                         radius,
+                                                         global_grid.conformal_mapping)
 
     return grid
 end
@@ -146,14 +166,17 @@ struct ZipperHaloCommunicationRanks{F, T, S}
     sign :: S
 end
 
-ZipperHaloCommunicationRanks(sign; from, to) = HaloCommunicationRanks(from, to, sign)
+ZipperHaloCommunicationRanks(sign; from, to) = ZipperHaloCommunicationRanks(from, to, sign)
 
-function receiving_rank(arch)
+Base.summary(hcr::ZipperHaloCommunicationRanks) = "ZipperHaloCommunicationRanks from rank $(hcr.from) to rank $(hcr.to)"
 
-    receive_idx_x = ranks(arch)[1] - arch.local_index[1]
+# Finding out the paired rank to communicate the north boundary
+# in case of a DistributedZipperBoundaryCondition
+function north_receiving_rank(arch)
+
+    receive_idx_x = ranks(arch)[1] - arch.local_index[1] + 1
     receive_idx_y = ranks(arch)[2]
-
-    receive_rank = 0
+    receive_rank  = 0
 
     for rank in 0:prod(ranks(arch)) - 1
         my_x_idx = 0
@@ -167,7 +190,7 @@ function receiving_rank(arch)
         barrier!(arch)
 
         x_idx = all_reduce(+, my_x_idx, arch)
-        y_idx = all_reduce(+, my_x_idx, arch)
+        y_idx = all_reduce(+, my_y_idx, arch)
 
         if x_idx == receive_idx_x && y_idx == receive_idx_y
             receive_rank = rank
@@ -198,15 +221,17 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     east  = regularize_boundary_condition(bcs.east,  grid, loc, 1, RightBoundary, prognostic_names)
     south = regularize_boundary_condition(bcs.south, grid, loc, 2, LeftBoundary,  prognostic_names)
     
+    north_recv_rank = north_receiving_rank(arch)
+
     north = if yrank == processor_size[2] - 1 && processor_size[1] == 1
         ZipperBoundaryCondition(sign)
 
     elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
         from = arch.local_rank
         # Search the rank to send to
-        to = receiving_rank(arch)
+        to = north_recv_rank
         halo_communication = ZipperHaloCommunicationRanks(sign; from, to)
-        DistributedBoundaryCondition(halo_communication)
+        DistributedCommunicationBoundaryCondition(halo_communication)
 
     else
         regularize_boundary_condition(bcs.north, grid, loc, 2, RightBoundary, prognostic_names)
@@ -228,11 +253,14 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     xrank = arch.local_index[1] - 1
     yrank = arch.local_index[2] - 1
 
-    processor_size = ranks(arch.partition)
+    processor_size = ranks(arch)
+
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
     default_zipper = ZipperBoundaryCondition(sign(LX, LY))
+
+    north_recv_rank = north_receiving_rank(arch)
 
     if isnothing(old_bcs) || ismissing(old_bcs)
         new_bcs = old_bcs
@@ -253,9 +281,9 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
         elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
             sgn  = old_bcs.north isa ZBC ? old_bcs.north.condition : sign(LX, LY)
             from = arch.local_rank
-            to   = receiving_rank(arch)
+            to   = north_recv_rank
             halo_communication = ZipperHaloCommunicationRanks(sgn; from, to)
-            north_bc = DistributedBoundaryCondition(halo_communication)
+            north_bc = DistributedCommunicationBoundaryCondition(halo_communication)
 
         else
             north_bc = new_bcs.north
@@ -271,7 +299,7 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
 
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
 
-    return Field{LX,LY,LZ}(grid, data, new_bcs, indices, op, status, buffers)
+    return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
 end
 
 # Reconstruction the global tripolar grid for visualization purposes
