@@ -76,7 +76,16 @@ end
 
 # We play the same trick as in the Distributed implementation and we extend the halos for
 # a split explicit barotropic solver on a tripolar grid. Only on the North boundary though!
-@inline tripolar_split_explicit_halos(old_halos, step_halo) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
+@inline tripolar_split_explicit_halos(old_halos, step_halo, grid) = old_halos[1], max(step_halo, old_halos[2]), old_halos[3]
+
+@inline function tripolar_split_explicit_halos(old_halos, step_halo, grid::DTRG) 
+    Rx, Ry, _ = architecture(grid).ranks
+
+    Hx = Rx == 1 ? old_halos[1] : max(step_halo, old_halos[1])
+    Hy = max(step_halo, old_halos[2]) # Always!
+   
+    return Hx, Hy, old_halos[3]
+end
 
 # Internal function for HydrostaticFreeSurfaceModel
 function materialize_free_surface(free_surface::SplitExplicitFreeSurface, velocities, grid::TRG)
@@ -86,7 +95,7 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
         old_halos  = halo_size(grid)
         Nsubsteps  = length(settings.substepping.averaging_weights)
 
-        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1)
+        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1, grid)
         extended_grid  = with_halo(extended_halos, grid)
 
         Nze = size(extended_grid, 3)

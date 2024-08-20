@@ -35,6 +35,18 @@ function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc)
     return nothing
 end
 
+@kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Face, <:Any}, sign, c)
+    i, k = @index(Global, NTuple)
+    Nx, Ny, _ = size(grid)
+    Hx, Hy, _ = halo_size(grid)
+    
+    i′ = Nx + 2Hx - i + 2 - 2
+    
+    for j = 1 : Hy 
+        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j + 1, k] 
+    end
+end
+
 @kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
     i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
@@ -101,6 +113,7 @@ function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffe
         
     switch_north_halos!(c, north_bc, grid, loc)
     
+    # @show arch.local_rank "finished communication"
     return nothing
 end
 
