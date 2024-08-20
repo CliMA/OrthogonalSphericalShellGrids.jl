@@ -9,8 +9,6 @@ using Oceananigans.DistributedComputations: cooperative_waitall!,
                                             loc_id, 
                                             DCBCT
 
-using Oceananigans.Utils: KernelParameters
-
 import Oceananigans.BoundaryConditions: fill_halo_regions!
 import Oceananigans.DistributedComputations: synchronize_communication!
 
@@ -24,65 +22,31 @@ switch_north_halos!(c, north_bc, grid, loc) = nothing
 @inline instantiate(T) = T
 
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
-    sign   = north_bc.condition.sign
-    Hx, Hy, _  = halo_size(grid)
-    Nx, Ny, Nz = size(grid)
+    sign  = north_bc.condition.sign
+    Hy = halo_size(grid)[2]
+    Ny = size(grid)[2]
+    sz = size(parent(c))
 
-    params = KernelParameters((Nx+2Hx-2, Nz), (0, 0))
-
-    launch!(architecture(grid), grid, params, _switch_north_halos!, grid, loc, sign, parent(c))
+    _switch_north_halos!(parent(c), loc, sign, sz, Ny, Hy)
 
     return nothing
 end
 
-@kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Face, <:Any}, sign, c)
-    i, k = @index(Global, NTuple)
-    Nx, Ny, _ = size(grid)
-    Hx, Hy, _ = halo_size(grid)
-    
-    i′ = Nx + 2Hx - i + 2 - 2
-    
-    for j = 1 : Hy 
-        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j + 1, k] 
-    end
-end
+# We throw away the first point!
+_switch_north_halos!(c, ::Tuple{<:Center, <:Center, <:Any}, sign, sz, Ny, Hy) = 
+    view(c, :, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1) 
 
-@kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
-    i, k = @index(Global, NTuple)
-    Nx, Ny, _ = size(grid)
-    Hx, Hy, _ = halo_size(grid)
-    
-    i′ = Nx + 2Hx - i + 2 - 2
-    
-    for j = 1 : Hy 
-        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j, k] 
-    end
-end
+# We do not throw away the first point!
+_switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, Ny, Hy) = 
+    view(c, :, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1) 
 
-@kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Face, <:Any}, sign, c)
-    i, k = @index(Global, NTuple)
-    Nx, Ny, _ = size(grid)
-    Hx, Hy, _ = halo_size(grid)
-    
-    i′ = Nx + 2Hx - i + 1 - 2
-    
-    for j = 1 : Hy - 1
-        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j + 1, k] 
-    end
-end
+# We throw away the first line and the first point!
+_switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
+    view(c, :, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1)
 
-@kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Center, <:Any}, sign, c)
-    i, k = @index(Global, NTuple)
-    Nx, Ny, _ = size(grid)
-    Hx, Hy, _ = halo_size(grid)
-    
-    i′ = Nx + 2Hx - i + 1 - 2
-    Hy = grid.Hy
-    
-    for j = 1 : Hy 
-        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j, k]
-    end
-end
+# We throw away the first line but not the first point!
+_switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
+    view(c, :, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1)
 
 function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)
     if fill_boundary_normal_velocities
@@ -113,7 +77,6 @@ function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffe
         
     switch_north_halos!(c, north_bc, grid, loc)
     
-    # @show arch.local_rank "finished communication"
     return nothing
 end
 

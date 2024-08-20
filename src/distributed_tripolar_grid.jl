@@ -104,31 +104,24 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     if  workers[1] != 1 
         northwest_idx_x = ranks(arch)[1] - arch.local_index[1] + 2
         northeast_idx_x = ranks(arch)[1] - arch.local_index[1] 
-
+        
         if northwest_idx_x > workers[1]
-            northwest_idx_x = northwest_idx_x - 1 
+            northwest_idx_x = arch.local_index[1]
         end
 
         if northeast_idx_x < 1
-            northwest_idx_x = 1
+            northeast_idx_x = arch.local_index[1]
         end
 
         # Make sure the northwest and northeast connectivities are correct
-        northwest_recv_rank = receiving_rank(arch) #; receive_idx_x = northwest_idx_x)
-        northeast_recv_rank = receiving_rank(arch) #; receive_idx_x = northeast_idx_x)
+        northwest_recv_rank = receiving_rank(arch; receive_idx_x = northwest_idx_x)
+        northeast_recv_rank = receiving_rank(arch; receive_idx_x = northeast_idx_x)
 
         if yrank == workers[2] - 1
             arch.connectivity.northeast = northwest_recv_rank
             arch.connectivity.northwest = northeast_recv_rank
         end
     end
-
-    # for r in 0:3
-    #     if arch.local_rank == r
-    #         @show arch.local_rank, arch.connectivity, northwest_recv_rank, northeast_recv_rank
-    #     end
-    #     barrier!(arch)
-    # end
 
     grid = OrthogonalSphericalShellGrid{LX, LY, Bounded}(arch,
                                                          nx, ny, Nz,
@@ -195,9 +188,9 @@ Base.summary(hcr::ZipperHaloCommunicationRanks) = "ZipperHaloCommunicationRanks 
 # Finding out the paired rank to communicate the north boundary
 # in case of a DistributedZipperBoundaryCondition
 function receiving_rank(arch;
-                        receive_idx_x = ranks(arch)[1] - arch.local_index[1] + 1,
-                        receive_idx_y = ranks(arch)[2])
+                        receive_idx_x = ranks(arch)[1] - arch.local_index[1] + 1)
 
+    Ry = ranks(arch)[2]
     receive_rank  = 0
 
     for rank in 0:prod(ranks(arch)) - 1
@@ -214,7 +207,7 @@ function receiving_rank(arch;
         x_idx = all_reduce(+, my_x_idx, arch)
         y_idx = all_reduce(+, my_y_idx, arch)
 
-        if x_idx == receive_idx_x && y_idx == receive_idx_y
+        if x_idx == receive_idx_x && y_idx == Ry
             receive_rank = rank
         end
 
