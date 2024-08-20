@@ -160,7 +160,7 @@ function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffe
     return nothing
 end
 
-function synchronize_communication!(field)
+function synchronize_communication!(field::Field{<:Any, <:Any, <:Any, <:Any, <:DTRG})
     arch = architecture(field.grid)
 
     # Wait for outstanding requests
