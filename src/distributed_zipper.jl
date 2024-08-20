@@ -20,14 +20,17 @@ const DistributedZipper = BoundaryCondition{<:DistributedCommunication, <:Zipper
 
 switch_north_halos!(c, north_bc, grid, loc) = nothing
 
+@inline instantiate(T::DataType) = T()
+@inline instantiate(T) = T
+
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
     sign   = north_bc.condition.sign
     Hx, Hy, _  = halo_size(grid)
     Nx, Ny, Nz = size(grid)
 
-    params = KernelParameters((Nx+2Hx-2, Nz), (-Hx+1, 0))
+    params = KernelParameters((Nx+2Hx-2, Nz), (0, 0))
 
-    launch!(architecture(grid), grid, params, _switch_north_halos!, grid, loc, sign, c)
+    launch!(architecture(grid), grid, params, _switch_north_halos!, grid, loc, sign, parent(c))
 
     return nothing
 end
@@ -35,36 +38,37 @@ end
 @kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
     i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
+    Hx, Hy, _ = halo_size(grid)
     
-    i′ = Nx - i + 2 
-    Hy = grid.Hy
+    i′ = Nx + 2Hx - i + 2 - 2
     
-    for j = 1 : Hy - 1 # TO CORRECTED!!!
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j, k] 
+    for j = 1 : Hy 
+        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j, k] 
     end
 end
 
 @kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Face, <:Any}, sign, c)
     i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
+    Hx, Hy, _ = halo_size(grid)
     
-    i′ = Nx - i + 1
-    Hy = grid.Hy
+    i′ = Nx + 2Hx - i + 1 - 2
     
     for j = 1 : Hy - 1
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j + 1, k] 
+        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j + 1, k] 
     end
 end
 
 @kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Center, <:Any}, sign, c)
     i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
+    Hx, Hy, _ = halo_size(grid)
     
-    i′ = Nx - i + 1
+    i′ = Nx + 2Hx - i + 1 - 2
     Hy = grid.Hy
     
-    for j = 1 : Hy - 1
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny + Hy - j, k]
+    for j = 1 : Hy 
+        @inbounds c[i, Ny + Hy + j, k] = sign * c[i′, Ny + 2Hy - j, k]
     end
 end
 
@@ -117,7 +121,8 @@ function synchronize_communication!(field::Field{<:Any, <:Any, <:Any, <:Any, <:D
     recv_from_buffers!(field.data, field.boundary_buffers, field.grid)
 
     north_bc = field.boundary_conditions.north
-    switch_north_halos!(field, north_bc, field.grid, location(field))
+    instantiated_location = map(instantiate, location(field))
+    switch_north_halos!(field, north_bc, field.grid, instantiated_location)
 
     return nothing
 end
