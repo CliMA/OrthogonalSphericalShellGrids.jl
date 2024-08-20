@@ -28,7 +28,7 @@ include("generate_tripolar_coordinates.jl")
 include("tripolar_grid.jl")
 include("grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
-include("boundary_buffers.jl")
+include("distributed_zipper.jl")
 include("with_halo.jl")
 include("split_explicit_free_surface.jl")
 

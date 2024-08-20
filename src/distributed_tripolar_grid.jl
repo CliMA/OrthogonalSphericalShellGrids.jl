@@ -140,7 +140,7 @@ end
 ##### Boundary condition extensions
 #####
 
-struct ZipperHaloCommunicationRanks{F, T}
+struct ZipperHaloCommunicationRanks{F, T, S}
     from :: F
       to :: T
     sign :: S
@@ -227,7 +227,7 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     arch = architecture(grid)
     xrank = arch.local_index[1] - 1
     yrank = arch.local_index[2] - 1
-    
+
     processor_size = ranks(arch.partition)
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
@@ -243,18 +243,18 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
         # the last rank, then we need to substitute the BC only if the old one is not already
         # a zipper boundary condition. Otherwise we always substitute because we need to 
         # inject the halo boundary conditions.
-        if rank == processor_size[2] - 1 && processor_size[1] == 1
+        if yrank == processor_size[2] - 1 && processor_size[1] == 1
             north_bc = if !(old_bcs.north isa ZBC)
                 default_zipper
             else
                 old_bcs.north
             end
 
-        elseif rank == processor_size[2] - 1 && processor_size[1] != 1
-            sign = old_bcs.north isa ZBC ? old_bcs.north.condition : sign(LX, LY)
+        elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
+            sgn  = old_bcs.north isa ZBC ? old_bcs.north.condition : sign(LX, LY)
             from = arch.local_rank
             to   = receiving_rank(arch)
-            halo_communication = ZipperHaloCommunicationRanks(sign; from, to)
+            halo_communication = ZipperHaloCommunicationRanks(sgn; from, to)
             north_bc = DistributedBoundaryCondition(halo_communication)
 
         else

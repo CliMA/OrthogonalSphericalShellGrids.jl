@@ -1,16 +1,25 @@
 using Oceananigans.BoundaryConditions: fill_open_boundary_regions!, 
                                        permute_boundary_conditions, 
                                        fill_halo_event!,
-                                       fill_corners!,
                                        DistributedCommunication
 
 using Oceananigans.DistributedComputations: cooperative_waitall!,
                                             recv_from_buffers!,
-                                            loc_id
+                                            fill_corners!,
+                                            loc_id, 
+                                            DCBCT
+
+using Oceananigans.Utils: KernelParameters
 
 import Oceananigans.BoundaryConditions: fill_halo_regions!
-import Oceananigans.DistributedComputations: synchronize_communication
-import Oceananigans.DistributedComputations: north_recv_tag, north_send_tag
+import Oceananigans.DistributedComputations: synchronize_communication!
+
+import Oceananigans.DistributedComputations: north_recv_tag, 
+                                             north_send_tag,
+                                             northwest_recv_tag, 
+                                             northwest_send_tag,
+                                             northeast_recv_tag, 
+                                             northeast_send_tag
 
 const DistributedZipper = BoundaryCondition{<:DistributedCommunication, <:ZipperHaloCommunicationRanks}
 
@@ -24,7 +33,7 @@ function north_recv_tag(arch, grid::DTRG, location)
     field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
     loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
     last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:south])
+    side_digit = last_rank ? 8 : string(side_id[:south])
     return parse(Int, field_id * loc_digit * side_digit)
 end
 
@@ -32,7 +41,7 @@ function north_send_tag(arch, grid::DTRG, location)
     field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
     loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
     last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:north])
+    side_digit = last_rank ? 8 : string(side_id[:north])
     return parse(Int, field_id * loc_digit * side_digit)
 end
 
@@ -56,7 +65,7 @@ function northeast_recv_tag(arch, grid::DTRG, location)
     field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
     loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
     last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:southwest])
+    side_digit = last_rank ? 10 : string(side_id[:southwest])
     return parse(Int, field_id * loc_digit * side_digit)
 end
 
@@ -64,84 +73,59 @@ function northeast_send_tag(arch, grid::DTRG, location)
     field_id   = string(arch.mpi_tag[], pad=ID_DIGITS)
     loc_digit  = string(loc_id(location...), pad=ID_DIGITS)
     last_rank  = arch.local_index[2] == ranks(arch)[2]
-    side_digit = last_rank ? 9 : string(side_id[:northeast])
+    side_digit = last_rank ? 10 : string(side_id[:northeast])
     return parse(Int, field_id * loc_digit * side_digit)
 end
 
 switch_north_halos!(c, north_bc, grid, loc) = nothing
 
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
-    sign = north_bc.condition.sign
+    sign   = north_bc.condition.sign
+    Hx, Hy, _  = halo_size(grid)
+    Nx, Ny, Nz = size(grid)
 
-    params = ...
+    params = KernelParameters((Nx+2Hx, Nz), (-Hx, 0))
 
     launch!(architecture(grid), grid, params, grid, loc, sign, c)
 
     return nothing
 end
 
-@kernel function _switch_north_halos!(i, k, grid, ::Tuple{<:Face, <:Face, <:Any}, sign, c)
+
+@kernel function _switch_north_halos!(grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
+    i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
     
-    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
-    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
+    i′ = Nx - i + 2 
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = s * c[i′, Ny - j + 1, k] 
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
-
-    return nothing
 end
 
-@kernel function _switch_north_halos!(i, k, grid, ::Tuple{<:Face, <:Center, <:Any}, sign, c)
-    Nx, Ny, _ = size(grid)
-    
-    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
-    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
-    Hy = grid.Hy
-    
-    for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = s * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
-    end
-
-    return nothing
-end
-
-@kernel function _switch_north_halos!(i, k, grid, ::Tuple{<:Center, <:Face, <:Any}, sign, c)
+@kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Face, <:Any}, sign, c)
+    i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
     end
-
-    return nothing
 end
 
-@kernel function _switch_north_halos!(i, k, grid, ::Tuple{<:Center, <:Center, <:Any}, sign, c)
+@kernel function _switch_north_halos!(grid, ::Tuple{<:Center, <:Center, <:Any}, sign, c)
+    i, k = @index(Global, NTuple)
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 1
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
-
-    return nothing
 end
 
 function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; fill_boundary_normal_velocities = true, kwargs...)
