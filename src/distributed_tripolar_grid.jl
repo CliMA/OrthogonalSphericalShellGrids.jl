@@ -41,39 +41,46 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     lsize = local_size(arch, global_size)
 
     # Extracting the local range
-    nlocal = concatenate_local_sizes(lsize, arch, 2)
-    rank = arch.local_rank
-
-    jstart = 1 + sum(nlocal[1:rank])
-    jend = rank == workers[2] - 1 ? Ny : sum(nlocal[1:rank+1])
+    nylocal = concatenate_local_sizes(lsize, arch, 2)
+    nxlocal = concatenate_local_sizes(lsize, arch, 1)
+    yrank   = arch.local_index[2] - 1
+    xrank   = arch.local_index[1] - 1
+    
+    jstart = 1 + sum(nylocal[1:yrank])
+    jend = yrank == workers[2] - 1 ? Ny : sum(nlocal[1:yrank+1])
     jrange = jstart-Hy:jend+Hy
 
+    istart = 1 + sum(nxlocal[1:xrank])
+    iend = xrank == workers[1] - 1 ? Nx : sum(nlocal[1:xrank+1])
+    irange = istart-Hx:iend+Hx
+
     # Partitioning the Coordinates
-    λᶠᶠᵃ = partition_tripolar_metric(global_grid, :λᶠᶠᵃ, jrange)
-    φᶠᶠᵃ = partition_tripolar_metric(global_grid, :φᶠᶠᵃ, jrange)
-    λᶠᶜᵃ = partition_tripolar_metric(global_grid, :λᶠᶜᵃ, jrange)
-    φᶠᶜᵃ = partition_tripolar_metric(global_grid, :φᶠᶜᵃ, jrange)
-    λᶜᶠᵃ = partition_tripolar_metric(global_grid, :λᶜᶠᵃ, jrange)
-    φᶜᶠᵃ = partition_tripolar_metric(global_grid, :φᶜᶠᵃ, jrange)
-    λᶜᶜᵃ = partition_tripolar_metric(global_grid, :λᶜᶜᵃ, jrange)
-    φᶜᶜᵃ = partition_tripolar_metric(global_grid, :φᶜᶜᵃ, jrange)
+    λᶠᶠᵃ = partition_tripolar_metric(global_grid, :λᶠᶠᵃ, irange, jrange)
+    φᶠᶠᵃ = partition_tripolar_metric(global_grid, :φᶠᶠᵃ, irange, jrange)
+    λᶠᶜᵃ = partition_tripolar_metric(global_grid, :λᶠᶜᵃ, irange, jrange)
+    φᶠᶜᵃ = partition_tripolar_metric(global_grid, :φᶠᶜᵃ, irange, jrange)
+    λᶜᶠᵃ = partition_tripolar_metric(global_grid, :λᶜᶠᵃ, irange, jrange)
+    φᶜᶠᵃ = partition_tripolar_metric(global_grid, :φᶜᶠᵃ, irange, jrange)
+    λᶜᶜᵃ = partition_tripolar_metric(global_grid, :λᶜᶜᵃ, irange, jrange)
+    φᶜᶜᵃ = partition_tripolar_metric(global_grid, :φᶜᶜᵃ, irange, jrange)
 
     # Partitioning the Metrics
-    Δxᶜᶜᵃ = partition_tripolar_metric(global_grid, :Δxᶜᶜᵃ, jrange)
-    Δxᶠᶜᵃ = partition_tripolar_metric(global_grid, :Δxᶠᶜᵃ, jrange)
-    Δxᶜᶠᵃ = partition_tripolar_metric(global_grid, :Δxᶜᶠᵃ, jrange)
-    Δxᶠᶠᵃ = partition_tripolar_metric(global_grid, :Δxᶠᶠᵃ, jrange)
-    Δyᶜᶜᵃ = partition_tripolar_metric(global_grid, :Δyᶜᶜᵃ, jrange)
-    Δyᶠᶜᵃ = partition_tripolar_metric(global_grid, :Δyᶠᶜᵃ, jrange)
-    Δyᶜᶠᵃ = partition_tripolar_metric(global_grid, :Δyᶜᶠᵃ, jrange)
-    Δyᶠᶠᵃ = partition_tripolar_metric(global_grid, :Δyᶠᶠᵃ, jrange)
-    Azᶜᶜᵃ = partition_tripolar_metric(global_grid, :Azᶜᶜᵃ, jrange)
-    Azᶠᶜᵃ = partition_tripolar_metric(global_grid, :Azᶠᶜᵃ, jrange)
-    Azᶜᶠᵃ = partition_tripolar_metric(global_grid, :Azᶜᶠᵃ, jrange)
-    Azᶠᶠᵃ = partition_tripolar_metric(global_grid, :Azᶠᶠᵃ, jrange)
+    Δxᶜᶜᵃ = partition_tripolar_metric(global_grid, :Δxᶜᶜᵃ, irange, jrange)
+    Δxᶠᶜᵃ = partition_tripolar_metric(global_grid, :Δxᶠᶜᵃ, irange, jrange)
+    Δxᶜᶠᵃ = partition_tripolar_metric(global_grid, :Δxᶜᶠᵃ, irange, jrange)
+    Δxᶠᶠᵃ = partition_tripolar_metric(global_grid, :Δxᶠᶠᵃ, irange, jrange)
+    Δyᶜᶜᵃ = partition_tripolar_metric(global_grid, :Δyᶜᶜᵃ, irange, jrange)
+    Δyᶠᶜᵃ = partition_tripolar_metric(global_grid, :Δyᶠᶜᵃ, irange, jrange)
+    Δyᶜᶠᵃ = partition_tripolar_metric(global_grid, :Δyᶜᶠᵃ, irange, jrange)
+    Δyᶠᶠᵃ = partition_tripolar_metric(global_grid, :Δyᶠᶠᵃ, irange, jrange)
+    Azᶜᶜᵃ = partition_tripolar_metric(global_grid, :Azᶜᶜᵃ, irange, jrange)
+    Azᶠᶜᵃ = partition_tripolar_metric(global_grid, :Azᶠᶜᵃ, irange, jrange)
+    Azᶜᶠᵃ = partition_tripolar_metric(global_grid, :Azᶜᶠᵃ, irange, jrange)
+    Azᶠᶠᵃ = partition_tripolar_metric(global_grid, :Azᶠᶠᵃ, irange, jrange)
 
-    LY = rank == 0 ? RightConnected : FullyConnected
-    ny = nlocal[rank+1]
+    LY = yrank == 0 ? RightConnected : FullyConnected
+    ny = nylocal[yrank+1]
+    nx = nxlocal[xrank+1]
 
     zᵃᵃᶜ   = global_grid.zᵃᵃᶜ
     zᵃᵃᶠ   = global_grid.zᵃᵃᶠ
@@ -82,7 +89,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     radius = global_grid.radius
 
     grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
-                                                               Nx, ny, Nz,
+                                                               nx, ny, Nz,
                                                                Hx, Hy, Hz,
                                                                convert(eltype(radius), global_grid.Lz),
                                                                on_architecture(arch, λᶜᶜᵃ),
@@ -115,41 +122,95 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     return grid
 end
 
-function partition_tripolar_metric(global_grid, metric_name, jrange)
+function partition_tripolar_metric(global_grid, metric_name, irange, jrange)
 
     metric = getproperty(global_grid, metric_name)
     offsets = metric.offsets
 
-    partitioned_metric = metric[:, jrange].parent
+    partitioned_metric = metric[irange, jrange]
+     
+    if partitioned_metric isa OffsetArray
+        partitioned_metric = partitioned_metric.parent
+    end
 
     return OffsetArray(partitioned_metric, offsets...)
 end
-
 
 #####
 ##### Boundary condition extensions
 #####
 
+struct ZipperHaloCommunicationRanks{F, T}
+    from :: F
+      to :: T
+    sign :: S
+end
+
+ZipperHaloCommunicationRanks(sign; from, to) = HaloCommunicationRanks(from, to, sign)
+
+function receiving_rank(arch)
+
+    receive_idx_x = ranks(arch)[1] - arch.local_index[1]
+    receive_idx_y = ranks(arch)[2]
+
+    receive_rank = 0
+
+    for rank in 0:prod(ranks(arch)) - 1
+        my_x_idx = 0
+        my_y_idx = 0
+
+        if arch.local_rank == rank 
+            my_x_idx = arch.local_index[1]
+            my_y_idx = arch.local_index[2]
+        end
+
+        barrier!(arch)
+
+        x_idx = all_reduce(+, my_x_idx, arch)
+        y_idx = all_reduce(+, my_x_idx, arch)
+
+        if x_idx == receive_idx_x && y_idx == receive_idx_y
+            receive_rank = rank
+        end
+
+        barrier!(arch)
+    end
+
+    return receive_rank
+end
+
 # a distributed `TripolarGrid` needs a `ZipperBoundaryCondition` for the north boundary
 # only on the last rank
 function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
-    grid::DTRG,
-    field_name::Symbol,
-    prognostic_names=nothing)
+                                              grid::DTRG,
+                                              field_name::Symbol,
+                                              prognostic_names=nothing)
 
     arch = architecture(grid)
     loc  = assumed_field_location(field_name)
-    rank = arch.local_rank
-    processor_size = ranks(arch.partition)
+    xrank = arch.local_index[1] - 1
+    yrank = arch.local_index[2] - 1
+
+    processor_size = ranks(arch)
     sign = (field_name == :u) || (field_name == :v) ? -1 : 1
 
-    west =  regularize_boundary_condition(bcs.west,  grid, loc, 1, LeftBoundary,  prognostic_names)
-    east =  regularize_boundary_condition(bcs.east,  grid, loc, 1, RightBoundary, prognostic_names)
+    west  = regularize_boundary_condition(bcs.west,  grid, loc, 1, LeftBoundary,  prognostic_names)
+    east  = regularize_boundary_condition(bcs.east,  grid, loc, 1, RightBoundary, prognostic_names)
     south = regularize_boundary_condition(bcs.south, grid, loc, 2, LeftBoundary,  prognostic_names)
-    north = if rank == processor_size[2] - 1
+    
+    north = if yrank == processor_size[2] - 1 && processor_size[1] == 1
         ZipperBoundaryCondition(sign)
+
+    elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
+        from = arch.local_rank
+        # Search the rank to send to
+        to = receiving_rank(arch)
+        halo_communication = ZipperHaloCommunicationRanks(sign; from, to)
+        DistributedBoundaryCondition(halo_communication)
+
     else
-        regularize_boundary_condition(bcs.south, grid, loc, 2, RightBoundary, prognostic_names)
+        regularize_boundary_condition(bcs.north, grid, loc, 2, RightBoundary, prognostic_names)
+
     end
 
     bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary,  prognostic_names)
@@ -164,7 +225,9 @@ end
 # with a sign that depends on the location of the field (revert the value of the halos if on edges, keep it if on nodes or centers)
 function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)
-    rank = arch.local_rank
+    xrank = arch.local_index[1] - 1
+    yrank = arch.local_index[2] - 1
+    
     processor_size = ranks(arch.partition)
     indices = validate_indices(indices, (LX, LY, LZ), grid)
     validate_field_data((LX, LY, LZ), data, grid, indices)
@@ -180,22 +243,30 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
         # the last rank, then we need to substitute the BC only if the old one is not already
         # a zipper boundary condition. Otherwise we always substitute because we need to 
         # inject the halo boundary conditions.
-        if rank == processor_size[2] - 1
+        if rank == processor_size[2] - 1 && processor_size[1] == 1
             north_bc = if !(old_bcs.north isa ZBC)
                 default_zipper
             else
                 old_bcs.north
             end
+
+        elseif rank == processor_size[2] - 1 && processor_size[1] != 1
+            sign = old_bcs.north isa ZBC ? old_bcs.north.condition : sign(LX, LY)
+            from = arch.local_rank
+            to   = receiving_rank(arch)
+            halo_communication = ZipperHaloCommunicationRanks(sign; from, to)
+            north_bc = DistributedBoundaryCondition(halo_communication)
+
         else
             north_bc = new_bcs.north
         end
 
         new_bcs = FieldBoundaryConditions(; west=new_bcs.west,
-            east=new_bcs.east,
-            south=new_bcs.south,
-            north=north_bc,
-            top=new_bcs.top,
-            bottom=new_bcs.bottom)
+                                            east=new_bcs.east,
+                                            south=new_bcs.south,
+                                            north=north_bc,
+                                            top=new_bcs.top,
+                                            bottom=new_bcs.bottom)
     end
 
     buffers = FieldBoundaryBuffers(grid, data, new_bcs)
