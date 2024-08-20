@@ -149,7 +149,7 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     north = if rank == processor_size[2] - 1
         ZipperBoundaryCondition(sign)
     else
-        regularize_boundary_condition(bcs.south, grid, loc, 2, RightBoundary, prognostic_names)
+        regularize_boundary_condition(bcs.north, grid, loc, 2, RightBoundary, prognostic_names)
     end
 
     bottom = regularize_boundary_condition(bcs.bottom, grid, loc, 3, LeftBoundary,  prognostic_names)
