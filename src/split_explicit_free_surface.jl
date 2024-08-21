@@ -53,7 +53,7 @@ function positive_zipper_boundary(default_field, grid::DTRG)
         arch = architecture(grid)
         workers = ranks(arch.partition)
 
-        if arch.local_rank == workers[2] - 1
+        if arch.local_index[2] == workers[2]
                 return  FieldBoundaryConditions(
                                 top    = nothing,
                                 bottom = nothing,
