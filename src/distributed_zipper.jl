@@ -12,14 +12,12 @@ using Oceananigans.DistributedComputations: cooperative_waitall!,
 import Oceananigans.BoundaryConditions: fill_halo_regions!
 import Oceananigans.DistributedComputations: synchronize_communication!
 
-import Oceananigans.Fields: create_buffer_y, create_buffer_corner
+@inline instantiate(T::DataType) = T()
+@inline instantiate(T) = T
 
 const DistributedZipper = BoundaryCondition{<:DistributedCommunication, <:ZipperHaloCommunicationRanks}
 
 switch_north_halos!(c, north_bc, grid, loc) = nothing
-
-@inline instantiate(T::DataType) = T()
-@inline instantiate(T) = T
 
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
     sign  = north_bc.condition.sign
@@ -42,11 +40,11 @@ _switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, Ny, Hy) =
 
 # We throw away the first line and the first point!
 _switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
-    view(c, :, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1)
+    view(c, 2:Px, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1)
 
 # We throw away the first line but not the first point!
 _switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
-    view(c, :, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1)
+    view(c, 2:Px, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1)
 
 function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)
     if fill_boundary_normal_velocities
@@ -98,6 +96,7 @@ function synchronize_communication!(field::Field{<:Any, <:Any, <:Any, <:Any, <:D
 
     north_bc = field.boundary_conditions.north
     instantiated_location = map(instantiate, location(field))
+
     switch_north_halos!(field, north_bc, field.grid, instantiated_location)
 
     return nothing

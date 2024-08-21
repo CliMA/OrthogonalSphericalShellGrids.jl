@@ -95,7 +95,9 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
         old_halos  = halo_size(grid)
         Nsubsteps  = length(settings.substepping.averaging_weights)
 
-        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+1, grid)
+        # We need 1 additional halos in both directions because of the shifting
+        # caused by by the fill halo of the horizontal velocity.
+        extended_halos = tripolar_split_explicit_halos(old_halos, Nsubsteps+3, grid)
         extended_grid  = with_halo(extended_halos, grid)
 
         Nze = size(extended_grid, 3)
