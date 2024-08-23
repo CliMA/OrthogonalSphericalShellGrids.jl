@@ -116,10 +116,12 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
         # Make sure the northwest and northeast connectivities are correct
         northwest_recv_rank = receiving_rank(arch; receive_idx_x = northwest_idx_x)
         northeast_recv_rank = receiving_rank(arch; receive_idx_x = northeast_idx_x)
+        north_recv_rank     = receiving_rank(arch)
 
         if yrank == workers[2] - 1
             arch.connectivity.northeast = northwest_recv_rank
             arch.connectivity.northwest = northeast_recv_rank
+            arch.connectivity.north     = north_recv_rank
         end
     end
 
@@ -186,9 +188,8 @@ ZipperHaloCommunicationRanks(sign; from, to) = ZipperHaloCommunicationRanks(from
 Base.summary(hcr::ZipperHaloCommunicationRanks) = "ZipperHaloCommunicationRanks from rank $(hcr.from) to rank $(hcr.to)"
 
 # Finding out the paired rank to communicate the north boundary
-# in case of a DistributedZipperBoundaryCondition
-function receiving_rank(arch;
-                        receive_idx_x = ranks(arch)[1] - arch.local_index[1] + 1)
+# in case of a DistributedZipperBoundaryCondition using a "Handshake" procedure
+function receiving_rank(arch; receive_idx_x = ranks(arch)[1] - arch.local_index[1] + 1)
 
     Ry = ranks(arch)[2]
     receive_rank  = 0
@@ -202,16 +203,12 @@ function receiving_rank(arch;
             my_y_idx = arch.local_index[2]
         end
 
-        barrier!(arch)
-
         x_idx = all_reduce(+, my_x_idx, arch)
         y_idx = all_reduce(+, my_y_idx, arch)
 
         if x_idx == receive_idx_x && y_idx == Ry
             receive_rank = rank
         end
-
-        barrier!(arch)
     end
 
     return receive_rank
@@ -226,7 +223,6 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
 
     arch = architecture(grid)
     loc  = assumed_field_location(field_name)
-    xrank = arch.local_index[1] - 1
     yrank = arch.local_index[2] - 1
 
     processor_size = ranks(arch)
@@ -236,15 +232,13 @@ function regularize_field_boundary_conditions(bcs::FieldBoundaryConditions,
     east  = regularize_boundary_condition(bcs.east,  grid, loc, 1, RightBoundary, prognostic_names)
     south = regularize_boundary_condition(bcs.south, grid, loc, 2, LeftBoundary,  prognostic_names)
     
-    north_recv_rank = receiving_rank(arch)
-
     north = if yrank == processor_size[2] - 1 && processor_size[1] == 1
         ZipperBoundaryCondition(sign)
 
     elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
         from = arch.local_rank
         # Search the rank to send to
-        to = north_recv_rank
+        to = arch.connectivity.north
         halo_communication = ZipperHaloCommunicationRanks(sign; from, to)
         DistributedCommunicationBoundaryCondition(halo_communication)
 
@@ -265,7 +259,6 @@ end
 # with a sign that depends on the location of the field (revert the value of the halos if on edges, keep it if on nodes or centers)
 function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, op, status)
     arch = architecture(grid)
-    xrank = arch.local_index[1] - 1
     yrank = arch.local_index[2] - 1
 
     processor_size = ranks(arch)
@@ -274,8 +267,6 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
     validate_field_data((LX, LY, LZ), data, grid, indices)
     validate_boundary_conditions((LX, LY, LZ), grid, old_bcs)
     default_zipper = ZipperBoundaryCondition(sign(LX, LY))
-
-    north_recv_rank = receiving_rank(arch)
 
     if isnothing(old_bcs) || ismissing(old_bcs)
         new_bcs = old_bcs
@@ -296,7 +287,7 @@ function Field((LX, LY, LZ)::Tuple, grid::DTRG, data, old_bcs, indices::Tuple, o
         elseif yrank == processor_size[2] - 1 && processor_size[1] != 1
             sgn  = old_bcs.north isa ZBC ? old_bcs.north.condition : sign(LX, LY)
             from = arch.local_rank
-            to   = north_recv_rank
+            to   = arch.connectivity.north
             halo_communication = ZipperHaloCommunicationRanks(sgn; from, to)
             north_bc = DistributedCommunicationBoundaryCondition(halo_communication)
 
