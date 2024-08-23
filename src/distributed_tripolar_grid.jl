@@ -32,7 +32,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
 
     # Check that partitioning in x is correct:
     try
-       if isodd(arch.partition.x) 
+       if isodd(arch.partition.x) && (arch.partition.x != 1)
             throw(ArgumentError("The number of partitionsOnly even partitioning in x is supported with the TripolarGrid"))
        end
     catch 
