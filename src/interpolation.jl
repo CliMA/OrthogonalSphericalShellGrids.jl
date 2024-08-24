@@ -17,6 +17,9 @@ struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     InterpolationWeights{LXT, LYT, LXF, LYF}(i::I, j::J, w::W) where {LXT, LYT, LXF, LYF, I, J, W}= new{LXT, LYT, LXF, LYF, I, J, W}(i, j, w)
 end
 
+@inline from_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) = (LXF, LYF)
+@inline to_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) = (LXT, LYT)
+
 Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) = 
     InterpolationWeights{LXT, LYT, LXF, LYF}(Adapt.adapt(to, iw.i_indices),
                                              Adapt.adapt(to, iw.j_indices),
@@ -67,10 +70,23 @@ end
 end
 
 function interpolate!(to_field, from_field::TRG, interpolation_weigths = nothing)
-    
+
+    to_loc = location(to_field)
+    from_loc = location(to_field)
+
     # Make sure weigths are coorect
     if !(interpolation_weigths isa InterpolationWeights)
         interpolation_weigths = InterpolationWeights(to_field, from_field)
+    else
+        # Check that the locations are correct
+        LXF, LYF = from_location(interpolation_weigths)
+        LXT, LYT = to_location(interpolation_weigths)
+
+        correct_locations = (LXF, LYF) == from_loc && (LXT, LYT) == to_loc
+        
+        if !correct_locations 
+            throw("The location of the interpolation weigths do not coincide with the locations of the in and out fields")
+        end
     end
 
     to_grid   = to_field.grid
@@ -97,6 +113,8 @@ function interpolate!(to_field, from_field::TRG, interpolation_weigths = nothing
             _nearest_neigbor_interpolate!, to_field, to_ℓz, to_grid, from_field, from_loc, from_grid, interpolation_weigths)
 
     fill_halo_regions!(to_field)
+
+    return to_field
 end
 
 @kernel function _nearest_neigbor_interpolate!(to_field, to_ℓz, to_grid, from_field, from_loc, from_grid, iw)
