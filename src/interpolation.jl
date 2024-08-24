@@ -13,6 +13,9 @@ TRGField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 ##### Nearest Neighbor Interpolation from a Tripolar Field to a Latitude Longitude Field
 #####
 
+# This is a "naive" algorithm, intended only for visualization and zonal averages, not for more sofisticated diagnostics. 
+# Optimizations and improvements are welcome.
+
 struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     i_indices :: I
     j_indices :: J
@@ -106,6 +109,9 @@ function interpolate!(to_field, from_field::TRGField, interpolation_weigths = no
     to_arch   = architecture(to_field)
     from_arch = architecture(from_field)
 
+    # Make sure `from_field` has the boundary conditions filled
+    fill_halo_regions!(from_field)
+
     # In case architectures are `Distributed` we
     # verify that the fields are on the same child architecture
     to_arch   = child_architecture(to_arch)
@@ -198,8 +204,7 @@ end
 # # We assume that in an TRG, the latitude lines for a given i - index are sorted
 # # i.e. φ is monotone in j. This is not the case for λ that might jump between 0 and 360.
 @inline function horizontal_distances(λ₀, φ₀, loc, grid)
-    # This is a "naive" algorithm, so it is going to be quite slow!
-    # Optimizations are welcome!
+
     λ = λnodes(grid, loc...; with_halos = true)
     φ = φnodes(grid, loc...; with_halos = true)
 
