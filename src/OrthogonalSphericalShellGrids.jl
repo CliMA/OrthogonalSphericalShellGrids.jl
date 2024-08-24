@@ -12,7 +12,8 @@ using Oceananigans.Grids: R_Earth,
                           halo_size, spherical_area_quadrilateral,
                           lat_lon_to_cartesian, generate_coordinate, topology
 using Oceananigans.Operators
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices
+
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices,                           
 
 using Adapt 
 using JLD2
@@ -32,5 +33,6 @@ include("distributed_zipper.jl")
 include("distributed_zipper_north_tags.jl")
 include("with_halo.jl")
 include("split_explicit_free_surface.jl")
+include("interpolation.jl")
 
 end
