@@ -125,8 +125,8 @@ end
     
     k⁻, k⁺, ζ = interpolator(kk)
 
-    iₒ = @inbounds iw.i_indices[i, j]
-    jₒ = @inbounds iw.j_indices[i, j]
+    i₀ = @inbounds iw.i_indices[i, j]
+    j₀ = @inbounds iw.j_indices[i, j]
 
     ϕ⁻ = horizontal_interpolate(i, j, from_grid, from_field, i₀, j₀, k⁻, iw.weights)
     ϕ⁺ = horizontal_interpolate(i, j, from_grid, from_field, i₀, j₀, k⁺, iw.weights)
