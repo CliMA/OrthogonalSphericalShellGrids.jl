@@ -97,7 +97,7 @@ function interpolate!(to_field, from_field::TRGField, interpolation_weigths = no
         end
     end
 
-    to_loc = map(instantiate, to_loc)
+    to_loc   = map(instantiate, to_loc)
     from_loc = map(instantiate, from_loc)
 
     to_grid   = to_field.grid
