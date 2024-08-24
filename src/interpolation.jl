@@ -124,7 +124,7 @@ function interpolate!(to_field, from_field::TRGField, interpolation_weigths = no
     return to_field
 end
 
-@kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, iw)
+@kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weights)
     i, j, k = @index(Global, NTuple)
 
     z  = znode(k, to_grid, to_loc[3])
@@ -132,32 +132,32 @@ end
     
     k⁻, k⁺, ζ = interpolator(kk)
 
-    i₀ = @inbounds iw.i_indices[i, j]
-    j₀ = @inbounds iw.j_indices[i, j]
-
-    ϕ⁻ = horizontal_interpolate(i, j, from_grid, from_field, i₀, j₀, k⁻, iw.weights)
-    ϕ⁺ = horizontal_interpolate(i, j, from_grid, from_field, i₀, j₀, k⁺, iw.weights)
+    ϕ⁻ = horizontal_interpolate(i, j, k⁻, from_grid, from_field, interpolation_weights)
+    ϕ⁺ = horizontal_interpolate(i, j, k⁺, from_grid, from_field, interpolation_weights)
 
     @inbounds to_field[i, j, k] = ϕ⁻ * (1 - ζ) + ϕ⁺ * ζ
 end
 
-@inline function horizontal_interpolate(i, j, from_grid, from_field, i₀, j₀, k₀, weights)
+@inline function horizontal_interpolate(i, j, k, grid, from_field, weights)
 
-    i₁ = ifelse(i₀ == 0, from_grid.Nx, i₀ - 1)
+    i₀ = @inbounds iw.i_indices[i, j]
+    j₀ = @inbounds iw.j_indices[i, j]
+
+    i₁ = ifelse(i₀ == 0, size(from_field, 1),  i₀ - 1)
     j₁ = ifelse(j₀ == 0, j₀, j₀ - 1)
     i₂ = ifelse(i₀ == size(from_field, 1), 1,  i₀ + 1)
     j₂ = ifelse(j₀ == size(from_field, 2), j₀, j₀ + 1)
 
     @inbounds begin
-        f₀₀ = from_field[i₀, j₀, k₀]
-        f₀₁ = from_field[i₀, j₁, k₀]
-        f₁₀ = from_field[i₁, j₀, k₀]
-        f₀₂ = from_field[i₀, j₂, k₀]
-        f₂₀ = from_field[i₂, j₀, k₀]
-        f₁₁ = from_field[i₁, j₁, k₀]
-        f₂₂ = from_field[i₂, j₂, k₀]
-        f₁₂ = from_field[i₁, j₂, k₀]
-        f₂₁ = from_field[i₂, j₁, k₀]
+        f₀₀ = from_field[i₀, j₀, k]
+        f₀₁ = from_field[i₀, j₁, k]
+        f₁₀ = from_field[i₁, j₀, k]
+        f₀₂ = from_field[i₀, j₂, k]
+        f₂₀ = from_field[i₂, j₀, k]
+        f₁₁ = from_field[i₁, j₁, k]
+        f₂₂ = from_field[i₂, j₂, k]
+        f₁₂ = from_field[i₁, j₂, k]
+        f₂₁ = from_field[i₂, j₁, k]
 
         w₀₀ = weights[i, j, 1]
         w₀₁ = weights[i, j, 2]
@@ -175,6 +175,10 @@ end
 
     return F / W
 end
+
+#####
+##### Weight computation
+#####
 
 @inline function distance(x₁, y₁, x₂, y₂) 
     dx = x₁ - x₂
