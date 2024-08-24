@@ -2,7 +2,7 @@ using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: TRG
 using Oceananigans
 using Oceananigans.Operators: Δx, Δy
-using Oceananigans.Grids: OSSG, λnodes, φnodes
+using Oceananigans.Grids: λnodes, φnodes, λnode, φnode
 using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField
 
 import Oceananigans.Fields: interpolate, interpolate!, fractional_indices
@@ -14,7 +14,9 @@ struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     j_indices :: J
     weights   :: W
 
-    InterpolationWeights{LXT, LYT, LXF, LYF}(i::I, j::J, w::W) where {LXT, LYT, LXF, LYF, I, J, W} = new{LXT, LYT, LXF, LYF, I, J, W}(i, j, w)
+    function InterpolationWeights{LXT, LYT, LXF, LYF}(i::I, j::J, w::W) where {LXT, LYT, LXF, LYF, I, J, W} 
+        return new{LXT, LYT, LXF, LYF, I, J, W}(i, j, w)
+    end
 end
 
 @inline from_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = (LXF, LYF)
@@ -25,7 +27,7 @@ Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) where {L
                                              Adapt.adapt(to, iw.j_indices),
                                              Adapt.adapt(to, iw.weights))
 
-function InterpolationWeights(to_field, from_field::TRG)
+function InterpolationWeights(to_field, from_field::TRGField)
     to_grid = to_field.grid
     from_grid = from_field.grid
     
@@ -39,14 +41,14 @@ function InterpolationWeights(to_field, from_field::TRG)
     from_loc = location(from_field)
     to_loc   = location(to_field)
 
-    launch!(arch, to_grid, :xy, compute_weights!, 
+    launch!(arch, to_grid, :xy, _compute_weights!, 
             i_indices, j_indices, weights, 
             to_grid, from_grid, map(instantiate, to_loc), map(instantiate, from_loc))
 
     return InterpolationWeights{to_loc[1], to_loc[2], from_loc[1], from_loc[2]}(i_indices, j_indices, weights)
 end
 
-@kernel function compute_weights(i_indices, j_indices, weights, to_grid, from_grid, to_loc, from_loc)
+@kernel function _compute_weights!(i_indices, j_indices, weights, to_grid, from_grid, to_loc, from_loc)
     i, j = @index(Global, NTuple)
 
     λ₀ = λnode(i, j, 1, to_grid, to_loc...)
@@ -257,5 +259,5 @@ end
 end
 
 # We assume that all points are very close to each other
-@inline massage_longitudes(λ₀, λ) = ifelse(abs(λ₀ - λ) > 180, 
-                                    ifelse(λ₀ > 180, λ + 360, λ - 360), λ)
+@inline massage_longitude(λ₀, λ) = ifelse(abs(λ₀ - λ) > 180, 
+                                   ifelse(λ₀ > 180, λ + 360, λ - 360), λ)
