@@ -43,7 +43,7 @@ function InterpolationWeights(to_field, from_field::TRGField)
     to_grid = to_field.grid
     from_grid = from_field.grid
     
-    Nx, Ny, _ = size(to_grid)
+    Nx, Ny, _ = size(to_field)
     arch = architecture(to_grid)
 
     i_indices = on_architecture(arch, zeros(Int, Nx, Ny))
