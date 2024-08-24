@@ -53,7 +53,7 @@ function InterpolationWeights(to_field, from_field::TRGField)
     to_loc   = location(to_field)
     from_loc = location(from_field)
 
-    launch!(arch, to_grid, :xy, _compute_weights!, 
+    launch!(arch, to_grid, (Nx, Ny), _compute_weights!, 
             i_indices, j_indices, weights, 
             to_grid, from_grid, map(instantiate, to_loc), map(instantiate, from_loc))
 
@@ -221,7 +221,8 @@ end
 
     @inbounds begin
         for i = 1:Nx
-            jⁿ = fractional_index(φ₀, φ[i, :], Ny) - 1
+            φi = view(φ, i, :)
+            jⁿ = fractional_index(φ₀, φi, Ny) - 1
             j⁻ = floor(Int, jⁿ)
             j⁺ = j⁻ + 1
 
