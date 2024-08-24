@@ -116,10 +116,6 @@ function interpolate!(to_field, from_field::TRGField, interpolation_weigths = no
         throw(ArgumentError(msg))
     end
 
-    # Make locations
-    to_ℓz = location(to_field)[3]()
-    from_loc = map(instantiate, location(to_field))
-
     launch!(to_arch, to_grid, size(to_field),
             _nearest_neigbor_interpolate!, to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weigths)
 
