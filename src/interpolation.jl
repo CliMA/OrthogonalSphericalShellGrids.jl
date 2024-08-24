@@ -14,13 +14,13 @@ struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     j_indices :: J
     weights   :: W
 
-    InterpolationWeights{LXT, LYT, LXF, LYF}(i::I, j::J, w::W) where {LXT, LYT, LXF, LYF, I, J, W}= new{LXT, LYT, LXF, LYF, I, J, W}(i, j, w)
+    InterpolationWeights{LXT, LYT, LXF, LYF}(i::I, j::J, w::W) where {LXT, LYT, LXF, LYF, I, J, W} = new{LXT, LYT, LXF, LYF, I, J, W}(i, j, w)
 end
 
-@inline from_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) = (LXF, LYF)
-@inline to_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) = (LXT, LYT)
+@inline from_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = (LXF, LYF)
+@inline to_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = (LXT, LYT)
 
-Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) = 
+Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = 
     InterpolationWeights{LXT, LYT, LXF, LYF}(Adapt.adapt(to, iw.i_indices),
                                              Adapt.adapt(to, iw.j_indices),
                                              Adapt.adapt(to, iw.weights))
