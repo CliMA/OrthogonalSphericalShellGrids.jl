@@ -2,10 +2,14 @@ using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: TRG
 using Oceananigans
 using Oceananigans.Operators: Δx, Δy
-using Oceananigans.Grids: λnodes, φnodes, λnode, φnode, znode
+using Oceananigans.Grids: λnode, φnode, znode
 using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField, interpolator
 
-import Oceananigans.Fields: interpolate!
+import Oceananigans.Fields: interpolate!, λnodes, φnodes
+
+# TODO: Move to Oceananigans
+@inline λnodes(ibg::ImmersedBoundaryGrid, args...; kwargs...) = λnodes(ibg.underlying_grid, args...; kwargs...)
+@inline φnodes(ibg::ImmersedBoundaryGrid, args...; kwargs...) = φnodes(ibg.underlying_grid, args...; kwargs...)
 
 TRGField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 
