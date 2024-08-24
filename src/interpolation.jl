@@ -2,12 +2,16 @@ using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: TRG
 using Oceananigans
 using Oceananigans.Operators: Δx, Δy
-using Oceananigans.Grids: λnodes, φnodes, λnode, φnode
-using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField
+using Oceananigans.Grids: λnodes, φnodes, λnode, φnode, znode
+using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField, interpolator
 
-import Oceananigans.Fields: interpolate, interpolate!, fractional_indices
+import Oceananigans.Fields: interpolate!
 
 TRGField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
+
+#####
+##### Nearest Neighbor Interpolation from a Tripolar Field to a Latitude Longitude Field
+#####
 
 struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     i_indices :: I
@@ -28,6 +32,7 @@ Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) where {L
                                              Adapt.adapt(to, iw.weights))
 
 function InterpolationWeights(to_field, from_field::TRGField)
+
     to_grid = to_field.grid
     from_grid = from_field.grid
     
@@ -38,8 +43,8 @@ function InterpolationWeights(to_field, from_field::TRGField)
     j_indices = on_architecture(arch, zeros(Int, Nx, Ny))
     weights   = on_architecture(arch, zeros(eltype(to_grid), Nx, Ny, 9))
 
-    from_loc = location(from_field)
     to_loc   = location(to_field)
+    from_loc = location(from_field)
 
     launch!(arch, to_grid, :xy, _compute_weights!, 
             i_indices, j_indices, weights, 
@@ -71,12 +76,13 @@ end
     end
 end
 
-function interpolate!(to_field, from_field::TRG, interpolation_weigths = nothing)
+function interpolate!(to_field, from_field::TRGField, interpolation_weigths = nothing)
 
     to_loc = location(to_field)
-    from_loc = location(to_field)
+    from_loc = location(from_field)
 
-    # Make sure weigths are coorect
+    # Make sure weigths are correct
+    # TODO: a check also on the grid (to and from)
     if !(interpolation_weigths isa InterpolationWeights)
         interpolation_weigths = InterpolationWeights(to_field, from_field)
     else
@@ -84,12 +90,15 @@ function interpolate!(to_field, from_field::TRG, interpolation_weigths = nothing
         LXF, LYF = from_location(interpolation_weigths)
         LXT, LYT = to_location(interpolation_weigths)
 
-        correct_locations = (LXF, LYF) == from_loc && (LXT, LYT) == to_loc
+        correct_locations = (LXF, LYF) == from_loc[1:2] && (LXT, LYT) == to_loc[1:2]
         
         if !correct_locations 
             throw("The location of the interpolation weigths do not coincide with the locations of the in and out fields")
         end
     end
+
+    to_loc = map(instantiate, to_loc)
+    from_loc = map(instantiate, from_loc)
 
     to_grid   = to_field.grid
     from_grid = from_field.grid
@@ -112,18 +121,18 @@ function interpolate!(to_field, from_field::TRG, interpolation_weigths = nothing
     from_loc = map(instantiate, location(to_field))
 
     launch!(to_arch, to_grid, size(to_field),
-            _nearest_neigbor_interpolate!, to_field, to_ℓz, to_grid, from_field, from_loc, from_grid, interpolation_weigths)
+            _nearest_neigbor_interpolate!, to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weigths)
 
     fill_halo_regions!(to_field)
 
     return to_field
 end
 
-@kernel function _nearest_neigbor_interpolate!(to_field, to_ℓz, to_grid, from_field, from_loc, from_grid, iw)
+@kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, iw)
     i, j, k = @index(Global, NTuple)
 
-    z  = znode(k, to_grid, to_ℓz)
-    kk = fractional_z_index(z, from_loc, grid)
+    z  = znode(k, to_grid, to_loc[3])
+    kk = fractional_z_index(z, from_loc, from_grid)
     
     k⁻, k⁺, ζ = interpolator(kk)
 
