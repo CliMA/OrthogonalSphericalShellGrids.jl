@@ -138,7 +138,7 @@ end
     @inbounds to_field[i, j, k] = ϕ⁻ * (1 - ζ) + ϕ⁺ * ζ
 end
 
-@inline function horizontal_interpolate(i, j, k, grid, from_field, weights)
+@inline function horizontal_interpolate(i, j, k, grid, from_field, iw)
 
     i₀ = @inbounds iw.i_indices[i, j]
     j₀ = @inbounds iw.j_indices[i, j]
@@ -159,15 +159,15 @@ end
         f₁₂ = from_field[i₁, j₂, k]
         f₂₁ = from_field[i₂, j₁, k]
 
-        w₀₀ = weights[i, j, 1]
-        w₀₁ = weights[i, j, 2]
-        w₁₀ = weights[i, j, 3]
-        w₀₂ = weights[i, j, 4]
-        w₂₀ = weights[i, j, 5]
-        w₁₁ = weights[i, j, 6]
-        w₂₂ = weights[i, j, 7]
-        w₁₂ = weights[i, j, 8]
-        w₂₁ = weights[i, j, 9]
+        w₀₀ = iw.weights[i, j, 1]
+        w₀₁ = iw.weights[i, j, 2]
+        w₁₀ = iw.weights[i, j, 3]
+        w₀₂ = iw.weights[i, j, 4]
+        w₂₀ = iw.weights[i, j, 5]
+        w₁₁ = iw.weights[i, j, 6]
+        w₂₂ = iw.weights[i, j, 7]
+        w₁₂ = iw.weights[i, j, 8]
+        w₂₁ = iw.weights[i, j, 9]
     end
 
     F = f₀₀ * w₀₀ + f₀₁ * w₀₁ + f₁₀ * w₁₀ + f₀₂ * w₀₂ + f₂₀ * w₂₀ + f₁₁ * w₁₁ + f₂₂ * w₂₂ + f₁₂ * w₁₂ + f₂₁ * w₂₁
