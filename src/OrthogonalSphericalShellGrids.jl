@@ -13,7 +13,7 @@ using Oceananigans.Grids: R_Earth,
                           lat_lon_to_cartesian, generate_coordinate, topology
 using Oceananigans.Operators
 
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices,                           
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices                       
 
 using Adapt 
 using JLD2
