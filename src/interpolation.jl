@@ -38,7 +38,7 @@ Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) where {L
                                              Adapt.adapt(to, iw.j_indices),
                                              Adapt.adapt(to, iw.weights))
 
-function InterpolationWeights(to_field, from_field::TRGField)
+function InterpolationWeights(to_field::Field, from_field::TRGField)
 
     to_grid = to_field.grid
     from_grid = from_field.grid
