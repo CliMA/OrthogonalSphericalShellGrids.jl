@@ -278,6 +278,7 @@ end
     return i₀, j₀, d₀₀, d₀₁, d₁₀, d₀₂, d₂₀, d₁₁, d₂₂, d₁₂, d₂₁
 end
 
-# We assume that all points are very close to each other
+# We assume that all points are very close to each other, so a longitude difference of 180 should not possible, 
+# this means that the same side of the globe, but that the longitude is displaced by 360 degrees.
 @inline massage_longitude(λ₀, λ) = ifelse(abs(λ₀ - λ) > 180, 
                                    ifelse(λ₀ > 180, λ + 360, λ - 360), λ)
