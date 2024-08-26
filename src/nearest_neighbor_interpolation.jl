@@ -19,6 +19,7 @@ TRGField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 
 # This is a "naive" algorithm, intended only for visualization and zonal averages, not for more sofisticated diagnostics. 
 # Optimizations and improvements are welcome.
+# Maybe move this to Oceananigans? Probably it requires a bit more validation...
 
 struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
     i_indices :: I
