@@ -280,6 +280,6 @@ end
 end
 
 # We assume that all points are very close to each other, so a longitude difference of 180 should not possible, 
-# this means that the same side of the globe, but that the longitude is displaced by 360 degrees.
+# this means that the we are on the same side of the globe, but that the longitude is displaced by 360 degrees.
 @inline massage_longitude(λ₀, λ) = ifelse(abs(λ₀ - λ) > 180, 
                                    ifelse(λ₀ > 180, λ + 360, λ - 360), λ)
