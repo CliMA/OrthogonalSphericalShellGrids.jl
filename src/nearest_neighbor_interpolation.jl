@@ -101,7 +101,7 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigt
         correct_locations = (LXF, LYF) == from_loc[1:2] && (LXT, LYT) == to_loc[1:2]
         
         if !correct_locations 
-            throw("The location of the interpolation weigths do not coincide with the locations of the in and out fields")
+            throw("The location of the interpolation weights do not coincide with the locations of the in and out fields")
         end
     end
 
