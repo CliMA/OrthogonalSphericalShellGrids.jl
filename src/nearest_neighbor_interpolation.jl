@@ -95,8 +95,8 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigh
         interpolation_weights = InterpolationWeights(to_field, from_field)
     else
         # Check that the locations are correct
-        LXF, LYF = from_location(interpolation_weigths)
-        LXT, LYT = to_location(interpolation_weigths)
+        LXF, LYF = from_location(interpolation_weights)
+        LXT, LYT = to_location(interpolation_weights)
 
         correct_locations = (LXF, LYF) == from_loc[1:2] && (LXT, LYT) == to_loc[1:2]
         
