@@ -128,7 +128,7 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigh
     end
 
     launch!(to_arch, to_grid, size(to_field),
-            _nearest_neigbor_interpolate!, to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weigths)
+            _nearest_neigbor_interpolate!, to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weights)
 
     fill_halo_regions!(to_field)
 
