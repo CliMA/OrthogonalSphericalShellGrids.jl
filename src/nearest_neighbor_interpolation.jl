@@ -84,7 +84,7 @@ end
     end
 end
 
-function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigths = nothing)
+function interpolate!(to_field::Field, from_field::TRGField, interpolation_weights = nothing)
 
     to_loc = location(to_field)
     from_loc = location(from_field)
