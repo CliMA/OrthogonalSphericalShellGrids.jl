@@ -91,8 +91,8 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigt
 
     # Make sure weigths are correct
     # TODO: a check also on the grid (to and from)
-    if !(interpolation_weigths isa InterpolationWeights)
-        interpolation_weigths = InterpolationWeights(to_field, from_field)
+    if !(interpolation_weights isa InterpolationWeights)
+        interpolation_weights = InterpolationWeights(to_field, from_field)
     else
         # Check that the locations are correct
         LXF, LYF = from_location(interpolation_weigths)
