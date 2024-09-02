@@ -134,6 +134,13 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigt
     return to_field
 end
 
+@kernel function _nearest_neigbor_interpolate!(to_field, ::Tuple{<:Any, <:Any, <:Nothing}, 
+                                               to_grid, from_field, from_loc, from_grid, interpolation_weights)
+    
+    i, j, k = @index(Global, NTuple)
+    @inbounds to_field[i, j, k] = horizontal_interpolate(i, j, k, from_grid, from_field, interpolation_weights)
+end
+
 @kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weights)
     i, j, k = @index(Global, NTuple)
 
