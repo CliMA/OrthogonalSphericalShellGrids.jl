@@ -1,8 +1,7 @@
 include("dependencies_for_runtests.jl")
 
-using Oceananigans
+using Oceananigans.Utils: getregion
 using Oceananigans.ImmersedBoundaries: immersed_cell
-using KernelAbstractions: @kernel, @index
 
 @kernel function compute_angle!(angle, grid, xF, yF, zF)
     i, j = @index(Global, NTuple)
