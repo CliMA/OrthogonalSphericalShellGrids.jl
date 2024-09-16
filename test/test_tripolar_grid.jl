@@ -44,7 +44,7 @@ end
     xF, yF, zF = cartesian_nodes
     Nx, Ny, _  = size(cubed_sphere_panel)
 
-    # Exclude the corners from the computation! (They are definitely orthogonal)
+    # Exclude the corners from the computation! (They are definitely not orthogonal)
     params = KernelParameters((Nx-10, Ny-10), (5, 5))
 
     launch!(CPU(), cubed_sphere_panel, params, compute_angle!, angle_cubed_sphere, cubed_sphere_panel, xF, yF, zF)
@@ -61,7 +61,7 @@ end
     bottom_height(λ, φ) = ((abs(λ - λ¹ₚ) < 5) & (abs(φₚ - φ) < 5)) |
                           ((abs(λ - λ²ₚ) < 5) & (abs(φₚ - φ) < 5)) | (φ < -78) ? 1 : 0
 
-    # Exclude the singularities from the computation! (They are definitely orthogonal)
+    # Exclude the singularities from the computation! (They are definitely not orthogonal)
     tripolar_grid      = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
     angle_tripolar     = zeros(size(tripolar_grid)...)
     cartesian_nodes, _ = get_cartesian_nodes_and_vertices(tripolar_grid.underlying_grid, Face(), Face(), Center())
