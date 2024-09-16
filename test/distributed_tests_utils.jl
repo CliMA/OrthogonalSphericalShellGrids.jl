@@ -13,7 +13,7 @@ function run_distributed_tripolar_grid(arch, filename)
     η = reconstruct_global_field(simulation.model.free_surface.η)
     u = reconstruct_global_field(simulation.model.velocities.u)
     v = reconstruct_global_field(simulation.model.velocities.v)
-    c = reconstruct_global_field(simulation.model.velocities.c)
+    c = reconstruct_global_field(simulation.model.tracers.c)
 
     fill_halo_regions!(η)
     fill_halo_regions!(u)

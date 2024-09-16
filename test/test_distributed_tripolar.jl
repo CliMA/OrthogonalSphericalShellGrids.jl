@@ -40,6 +40,7 @@ run_pencil_distributed_grid = """
 
     # Retrieve Serial quantities
     us, vs, ws = simulation.model.velocities
+    cs = simulation.model.tracers.c
     ηs = simulation.model.free_surface.η
 
     # Retrieve Parallel quantities
