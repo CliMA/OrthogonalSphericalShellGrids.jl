@@ -1,3 +1,5 @@
+using Oceananigans
+using Oceananigans.Units
 
 function run_tripolar_simulation(grid)
 
@@ -11,12 +13,10 @@ function run_tripolar_simulation(grid)
     # Setup the model with a gaussian profile near the physical north poles
     ηᵢ(λ, φ, z) = exp(- (φ - 90)^2 / 10^2) 
 
-    set!(model, η = (x, y, z) -> exp( - (x - λp)^2 / 10^2 - (y - φp)^2 / 10^2) * 0.1)
+    set!(model, η = ηᵢ)
 
     simulation = Simulation(model, Δt = 1minutes, stop_iteration = 100)
     
-    outputs = merge(model.velocities, (; η = model.free_surface.η))
-
     run!(simulation)
 
     return nothing
