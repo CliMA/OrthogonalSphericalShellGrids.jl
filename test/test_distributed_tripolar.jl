@@ -34,6 +34,7 @@ run_distributed_grid = """
     MPI.Barrier(MPI.COMM_WORLD)
     MPI.Finalize()
 """
+
 @testset "Test distributed TripolarGrid..." begin
 
     # Run the distributed grid simulation
