@@ -2,10 +2,11 @@
 function run_tripolar_simulation(grid)
 
     model = HydrostaticFreeSurfaceModel(; grid = grid,
-                                            free_surface = SplitExplicitFreeSurface(grid; substeps = 20),
-                                            tracers = (),
-                                            buoyancy = nothing, 
-                                            coriolis = HydrostaticSphericalCoriolis())
+                                          free_surface = SplitExplicitFreeSurface(grid; substeps = 20),
+                                          tracers = (),
+                                          buoyancy = nothing, 
+                                          momentum_advection = VectorInvariant(),
+                                          coriolis = HydrostaticSphericalCoriolis())
 
     # Setup the model with a gaussian profile near the physical north poles
     ηᵢ(λ, φ, z) = exp(- (φ - 90)^2 / 10^2) 
