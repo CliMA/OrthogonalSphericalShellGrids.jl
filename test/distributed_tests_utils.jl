@@ -14,13 +14,15 @@ function run_distributed_tripolar_grid(arch, filename)
     η = reconstruct_global_field(simulation.model.free_surface.η)
     u = reconstruct_global_field(simulation.model.velocities.u)
     v = reconstruct_global_field(simulation.model.velocities.v)
+    c = reconstruct_global_field(simulation.model.velocities.c)
 
     fill_halo_regions!(η)
     fill_halo_regions!(u)
     fill_halo_regions!(v)
+    fill_halo_regions!(c)
 
     if arch.local_rank == 0
-        jldsave(filename; η = interior(η, :, :, 1), u = u.data, v = v.data) 
+        jldsave(filename; η = interior(η, :, :, 1), u = u.data, v = v.data, c = c.data) 
     end
 
     MPI.Barrier(MPI.COMM_WORLD)
@@ -33,16 +35,17 @@ function run_tripolar_simulation(grid)
 
     model = HydrostaticFreeSurfaceModel(; grid = grid,
                                           free_surface = SplitExplicitFreeSurface(grid; substeps = 20),
-                                          tracers = (),
+                                          tracers = :c,
                                           buoyancy = nothing, 
+                                          tracer_advection = WENO(),
                                           momentum_advection = VectorInvariant(),
                                           coriolis = HydrostaticSphericalCoriolis())
 
     # Setup the model with a gaussian sea surface height
     # near the physical north poles and one near the equator
     ηᵢ(λ, φ, z) = exp(- (φ - 90)^2 / 10^2) + exp(- φ^2 / 10^2)
-
-    set!(model, η = ηᵢ)
+    
+    set!(model, η = ηᵢ, c = cᵢ)
 
     simulation = Simulation(model, Δt = 5minutes, stop_iteration = 100)
     
