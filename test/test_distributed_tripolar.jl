@@ -12,7 +12,7 @@ run_distributed_grid = """
     MPI.Init()
 
     include("distributed_tests_utils.jl")
-    arch = Distributed(CPU(), partition = Partition(2, 2))
+    arch = Distributed(CPU(), partition = Partition(1, 4))
     
     distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0))
     distributed_grid = mask_singularities(distributed_grid)

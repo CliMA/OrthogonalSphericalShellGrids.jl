@@ -31,12 +31,14 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     workers = ranks(arch.partition)
 
     # Check that partitioning in x is correct:
-    try
-       if isodd(arch.partition.x) && (arch.partition.x != 1)
-            throw(ArgumentError("The number of partitionsOnly even partitioning in x is supported with the TripolarGrid"))
-       end
-    catch 
-        throw(ArgumentError("The x partition $(arch.partition.x) is not supported. The partition in x must be an even number. "))
+    if !isnothing(arch.partition.x)
+        try
+            if isodd(arch.partition.x) && (arch.partition.x != 1)
+                throw(ArgumentError("TOnly even partitioning in x is supported with the TripolarGrid"))
+            end
+        catch 
+            throw(ArgumentError("The x partition $(arch.partition.x) is not supported. The partition in x must be an even number. "))
+        end
     end
 
     Hx, Hy, Hz = halo
