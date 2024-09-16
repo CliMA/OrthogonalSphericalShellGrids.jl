@@ -313,7 +313,7 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     arch = grid.architecture
 
-    n = size(grid)
+    n    = Base.size(grid)
     halo = halo_size(grid)
     size = map(sum, concatenate_local_sizes(n, arch))
 
