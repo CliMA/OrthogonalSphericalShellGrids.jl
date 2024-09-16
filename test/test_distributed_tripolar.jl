@@ -1,3 +1,5 @@
+include("dependencies_for_runtests.jl")
+include("distributed_tests_utils.jl")
 using MPI
 
 run_distributed_grid = """
@@ -6,6 +8,7 @@ run_distributed_grid = """
     using Oceananigans.BoundaryConditions
     using Oceananigans.DistributedComputations: reconstruct_global_field
     using MPI
+    using JLD2
     MPI.Init()
 
     include("distributed_tests_utils.jl")
@@ -31,7 +34,6 @@ run_distributed_grid = """
     MPI.Barrier(MPI.COMM_WORLD)
     MPI.Finalize()
 """
-
 @testset "Test distributed TripolarGrid..." begin
 
     # Run the distributed grid simulation
