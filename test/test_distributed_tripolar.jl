@@ -3,6 +3,7 @@ using MPI
 run_distributed_grid = """
     using OrthogonalSphericalShellGrids
     using Oceananigans
+    using Oceananigans.DistributedComputations: reconstruct_global_field
     using MPI
     MPI.Init()
 
