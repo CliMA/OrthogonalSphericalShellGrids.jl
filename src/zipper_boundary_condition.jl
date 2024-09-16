@@ -86,7 +86,7 @@ end
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    s  = ifelse(i > Nx , abs(sign), sign) # for periodic elements we change the sign
+    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
     i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
