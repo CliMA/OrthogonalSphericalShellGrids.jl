@@ -7,8 +7,12 @@ include("dependencies_for_runtests.jl")
     # Test boundary conditions?
     c = CenterField(grid)
 
-    set!(c, 1.0)
+    fill!(c, 1.0)
     fill_halo_regions!(c)
 
     @test all(c.data .== 1.0) 
 end
+
+include("test_tripolar_grid.jl")
+include("test_zipper_boundary_conditions.jl")
+
