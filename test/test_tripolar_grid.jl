@@ -1,5 +1,6 @@
 include("dependencies_for_runtests.jl")
 
+using Statistics: dot, norm
 using Oceananigans.Utils: getregion
 using Oceananigans.ImmersedBoundaries: immersed_cell
 
