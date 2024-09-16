@@ -2,45 +2,35 @@ include("dependencies_for_runtests.jl")
 include("distributed_tests_utils.jl")
 using MPI
 
-run_distributed_grid = """
-    using OrthogonalSphericalShellGrids
+run_slab_distributed_grid = """
     using Oceananigans
-    using Oceananigans.BoundaryConditions
-    using Oceananigans.DistributedComputations: reconstruct_global_field
     using MPI
-    using JLD2
     MPI.Init()
 
     include("distributed_tests_utils.jl")
     arch = Distributed(CPU(), partition = Partition(1, 4))
-    
-    distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0))
-    distributed_grid = mask_singularities(distributed_grid)
+    run_distributed_tripolar_grid(arch, "distributed_slab_tripolar.jld2")
+"""
 
-    simulation = run_tripolar_simulation(distributed_grid)
+run_pencil_distributed_grid = """
+    using Oceananigans
+    using MPI
+    MPI.Init()
 
-    η = reconstruct_global_field(simulation.model.free_surface.η)
-    u = reconstruct_global_field(simulation.model.velocities.u)
-    v = reconstruct_global_field(simulation.model.velocities.v)
-
-    fill_halo_regions!(η)
-    fill_halo_regions!(u)
-    fill_halo_regions!(v)
-
-    if arch.local_rank == 0
-        jldsave("distributed_tripolar.jld2"; η = η.data, u = u.data, v = v.data) 
-    end
-
-    MPI.Barrier(MPI.COMM_WORLD)
-    MPI.Finalize()
+    include("distributed_tests_utils.jl")
+    arch = Distributed(CPU(), partition = Partition(2, 2))
+    run_distributed_tripolar_grid(arch, "distributed_pencil_tripolar.jld2")
 """
 
 @testset "Test distributed TripolarGrid..." begin
-
     # Run the distributed grid simulation
-    write("distributed_grid.jl", run_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_grid.jl`))
-    rm("distributed_grid.jl")
+    write("distributed_tests.jl", run_slab_distributed_grid)
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
+
+    write("distributed_tests.jl", run_pencil_distributed_grid)
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
 
     # Run the serial computation    
     grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0))
@@ -53,11 +43,19 @@ run_distributed_grid = """
     ηs = simulation.model.free_surface.η
 
     # Retrieve Parallel quantities
-    up = jldopen("distributed_tripolar.jld2")["u"]
-    vp = jldopen("distributed_tripolar.jld2")["v"]
-    ηp = jldopen("distributed_tripolar.jld2")["η"]
+    up_slab = jldopen("distributed_tripolar.jld2")["u"]
+    vp_slab = jldopen("distributed_tripolar.jld2")["v"]
+    ηp_slab = jldopen("distributed_tripolar.jld2")["η"]
 
-    @test us.data ≈ up
-    @test vs.data ≈ vp
-    @test ηs.data ≈ ηp
+    up_slab = jldopen("distributed_tripolar.jld2")["u"]
+    vp_slab = jldopen("distributed_tripolar.jld2")["v"]
+    ηp_slab = jldopen("distributed_tripolar.jld2")["η"]
+
+    @test us.data ≈ up_slab
+    @test vs.data ≈ vp_slab
+    @test interior(ηs, :, :, 1) ≈ ηp_slab
+
+    @test us.data ≈ up_pencil
+    @test vs.data ≈ vp_pencil
+    @test interior(ηs, :, :, 1) ≈ ηp_pencil
 end
