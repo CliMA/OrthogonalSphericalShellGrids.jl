@@ -19,7 +19,7 @@ function run_tripolar_simulation(grid)
     
     run!(simulation)
 
-    return nothing
+    return simulation
 end
 
 function mask_singularities(underlying_grid)

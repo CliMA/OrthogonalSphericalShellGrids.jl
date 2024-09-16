@@ -12,12 +12,12 @@ run_distributed_grid = """
     distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0))
     distributed_grid = mask_singularities(distributed_grid)
 
-    run_tripolar_simulation(distributed_grid)
+    simulation = run_tripolar_simulation(distributed_grid)
 
     if arch.local_rank == 0
-        η = reconstruct_global_field(model.free_surface.η)
-        u = reconstruct_global_field(model.velocities.u)
-        v = reconstruct_global_field(model.velocities.v)
+        η = reconstruct_global_field(simulation.model.free_surface.η)
+        u = reconstruct_global_field(simulation.model.velocities.u)
+        v = reconstruct_global_field(simulation.model.velocities.v)
 
         fill_halo_regions!(η)
         fill_halo_regions!(u)
@@ -30,28 +30,26 @@ run_distributed_grid = """
 """
 
 @testset "Test distributed TripolarGrid..." begin
+
+    # Run the distributed grid simulation
     write("distributed_grid.jl", run_distributed_grid)
-
     mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_grid.jl`))
+    rm("distributed_grid.jl")
 
-    arch = CPU()
-    
-    grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0))
-    λp = grid.conformal_mapping.first_pole_longitude
-    φp = grid.conformal_mapping.north_poles_latitude
-    
+    # Run the serial computation    
+    grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0))
     grid = mask_singularities(grid)
 
-    run_tripolar_simulation(grid)
+    simulation = run_tripolar_simulation(grid)
 
-    # Serial quantities
-    us, vs, ws = model.velocities
-    ηs = model.free_surface.η
+    # Retrieve Serial quantities
+    us, vs, ws = simulation.model.velocities
+    ηs = simulation.model.free_surface.η
 
-    # Parallel quantities
+    # Retrieve Parallel quantities
     up = jldopen("distributed_tripolar.jld2")["u"]
-    vp = jldopen("distributed_tripolar.jld2")["u"]
-    ηp = jldopen("distributed_tripolar.jld2")["u"]
+    vp = jldopen("distributed_tripolar.jld2")["v"]
+    ηp = jldopen("distributed_tripolar.jld2")["η"]
 
     @test us.data ≈ up
     @test vs.data ≈ vp
