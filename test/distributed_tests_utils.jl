@@ -1,11 +1,10 @@
-using OrthogonalSphericalShellGrids
-using Oceananigans
-using Oceananigans.Units
-using Oceananigans.BoundaryConditions
-using Oceananigans.DistributedComputations: reconstruct_global_field
 using JLD2
 using MPI
+using Oceananigans.DistributedComputations: reconstruct_global_field
 
+include("dependencies_for_runtests.jl")
+
+# Run the distributed grid simulation and save down reconstructed results
 function run_distributed_tripolar_grid(arch, filename)
     distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0))
     distributed_grid = mask_singularities(distributed_grid)
@@ -31,6 +30,7 @@ function run_distributed_tripolar_grid(arch, filename)
     return nothing
 end
 
+# Just a random simulation on a tripolar grid
 function run_tripolar_simulation(grid)
 
     model = HydrostaticFreeSurfaceModel(; grid = grid,
@@ -45,24 +45,11 @@ function run_tripolar_simulation(grid)
     # near the physical north poles and one near the equator
     ηᵢ(λ, φ, z) = exp(- (φ - 90)^2 / 10^2) + exp(- φ^2 / 10^2)
     
-    set!(model, η = ηᵢ, c = cᵢ)
+    set!(model, η = ηᵢ, c = ηᵢ)
 
     simulation = Simulation(model, Δt = 5minutes, stop_iteration = 100)
     
     run!(simulation)
 
     return simulation
-end
-
-function mask_singularities(underlying_grid)
-    λp = underlying_grid.conformal_mapping.first_pole_longitude
-    φp = underlying_grid.conformal_mapping.north_poles_latitude
-    
-    # We need a bottom height field that ``masks'' the singularities
-    bottom_height(λ, φ) = ((abs(λ - λp) < 5)       & (abs(φp - φ) < 5)) |
-                          ((abs(λ - λp - 180) < 5) & (abs(φp - φ) < 5)) | (φ < -80) ? 0 : - 1000
-
-    grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bottom_height))
-
-    return grid
 end
