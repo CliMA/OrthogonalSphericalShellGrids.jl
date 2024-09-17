@@ -22,28 +22,28 @@ switch_north_halos!(c, north_bc, grid, loc) = nothing
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
     sign  = north_bc.condition.sign
     Hy = halo_size(grid)[2]
-    Ny = size(grid)[2]
     sz = size(parent(c))
+    gs = size(grid)
 
-    _switch_north_halos!(parent(c), loc, sign, sz, Ny, Hy)
+    _switch_north_halos!(parent(c), loc, sign, sz, gs, Hy)
 
     return nothing
 end
 
 # We throw away the first point!
-_switch_north_halos!(c, ::Tuple{<:Center, <:Center, <:Any}, sign, sz, Ny, Hy) = 
+_switch_north_halos!(c, ::Tuple{<:Center, <:Center, <:Any}, sign, sz, (Nx, Ny, Nz), Hy) = 
     view(c, :, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1) 
 
 # We do not throw away the first point!
-_switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, Ny, Hy) = 
+_switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, (Nx, Ny, Nz), Hy) = 
     view(c, :, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1) 
 
 # We throw away the first line and the first point!
-_switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
+_switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), Hy) = 
     view(c, 2:Px, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1)
 
 # We throw away the first line but not the first point!
-_switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), Ny, Hy) = 
+_switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), Hy) = 
     view(c, 2:Px, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1)
 
 function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)

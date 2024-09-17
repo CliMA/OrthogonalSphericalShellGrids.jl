@@ -29,16 +29,16 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
                       kwargs...)
 
     workers = ranks(arch.partition)
+    px = ifelse(isnothing(arch.partition.x), 1, arch.partition.x)
+    py = ifelse(isnothing(arch.partition.y), 1, arch.partition.y)
 
     # Check that partitioning in x is correct:
-    if !isnothing(arch.partition.x)
-        try
-            if isodd(arch.partition.x) && (arch.partition.x != 1)
-                throw(ArgumentError("TOnly even partitioning in x is supported with the TripolarGrid"))
-            end
-        catch 
-            throw(ArgumentError("The x partition $(arch.partition.x) is not supported. The partition in x must be an even number. "))
+    try
+        if isodd(px) && (px != 1)
+            throw(ArgumentError("TOnly even partitioning in x is supported with the TripolarGrid"))
         end
+    catch 
+        throw(ArgumentError("The x partition $(px) is not supported. The partition in x must be an even number. "))
     end
 
     Hx, Hy, Hz = halo
@@ -54,8 +54,8 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     # Extracting the local range
     nylocal = concatenate_local_sizes(lsize, arch, 2)
     nxlocal = concatenate_local_sizes(lsize, arch, 1)
-    yrank   = arch.local_index[2] - 1
-    xrank   = arch.local_index[1] - 1
+    yrank   = ifelse(isnothing(arch.partition.x), 0, arch.local_index[2] - 1)
+    xrank   = ifelse(isnothing(arch.partition.x), 0, arch.local_index[1] - 1)
     
     # The j-range
     jstart = 1 + sum(nylocal[1:yrank])
@@ -120,10 +120,14 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
         northeast_recv_rank = receiving_rank(arch; receive_idx_x = northeast_idx_x)
         north_recv_rank     = receiving_rank(arch)
 
-        if yrank == workers[2] - 1
-            arch.connectivity.northeast = northwest_recv_rank
-            arch.connectivity.northwest = northeast_recv_rank
-            arch.connectivity.north     = north_recv_rank
+        if workers[2] != 1
+            if yrank == workers[2] - 1
+                arch.connectivity.northeast = northwest_recv_rank
+                arch.connectivity.northwest = northeast_recv_rank
+                arch.connectivity.north     = north_recv_rank
+            end
+        else
+            arch.connectivity.north = north_recv_rank
         end
     end
 
