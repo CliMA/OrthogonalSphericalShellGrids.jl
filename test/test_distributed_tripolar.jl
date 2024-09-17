@@ -105,23 +105,23 @@ run_pencil_distributed_grid = """
     ηs = simulation.model.free_surface.η
 
     # Retrieve Parallel quantities
-    up_xslab = jldopen("distributed_slab_tripolar.jld2")["u"]
-    vp_xslab = jldopen("distributed_slab_tripolar.jld2")["v"]
-    ηp_xslab = jldopen("distributed_slab_tripolar.jld2")["η"]
-    cp_xslab = jldopen("distributed_slab_tripolar.jld2")["c"]
+    up_slab = jldopen("distributed_slab_tripolar.jld2")["u"]
+    vp_slab = jldopen("distributed_slab_tripolar.jld2")["v"]
+    ηp_slab = jldopen("distributed_slab_tripolar.jld2")["η"]
+    cp_slab = jldopen("distributed_slab_tripolar.jld2")["c"]
 
     up_pencil = jldopen("distributed_pencil_tripolar.jld2")["u"]
     vp_pencil = jldopen("distributed_pencil_tripolar.jld2")["v"]
     ηp_pencil = jldopen("distributed_pencil_tripolar.jld2")["η"]
     cp_pencil = jldopen("distributed_pencil_tripolar.jld2")["c"]
 
-    @test us.data ≈ up_slab
-    @test vs.data ≈ vp_slab
-    @test cs.data ≈ cp_slab
+    @test interior(us, :, :, 1) ≈ up_slab
+    @test interior(vs, :, :, 1) ≈ vp_slab
+    @test interior(cs, :, :, 1) ≈ cp_slab
     @test interior(ηs, :, :, 1) ≈ ηp_slab
 
-    @test us.data ≈ up_pencil
-    @test vs.data ≈ vp_pencil
-    @test cs.data ≈ cp_pencil
+    @test interior(us, :, :, 1) ≈ up_pencil
+    @test interior(vs, :, :, 1) ≈ vp_pencil
+    @test interior(cs, :, :, 1) ≈ cp_pencil
     @test interior(ηs, :, :, 1) ≈ ηp_pencil
 end
