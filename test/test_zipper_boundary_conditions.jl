@@ -34,10 +34,10 @@ using OrthogonalSphericalShellGrids: Zipper
 
     # U is special, because periodicity is hardcoded in the x-direction
     north_interior_boundary_u = view(u.data, 2:Nx-1, Ny+1:Ny+Hy, 1)
-    @test all(north_interior_boundary_u .== -1.0)
+    @test all(north_interior_boundary_u .== -1)
 
     north_boundary_u_left  = view(u.data, 1, Ny+1:Ny+Hy, 1)
     north_boundary_u_right = view(u.data, Nx+1, Ny+1:Ny+Hy, 1)
-    @test all(north_boundary_u_left  .== 1.0)
-    @test all(north_boundary_u_right .== 1.0)
+    @test all(north_boundary_u_left  .== 1)
+    @test all(north_boundary_u_right .== 1)
 end

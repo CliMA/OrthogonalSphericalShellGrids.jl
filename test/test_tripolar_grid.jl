@@ -4,7 +4,7 @@ using Statistics: dot, norm
 using Oceananigans.Utils: getregion
 using Oceananigans.ImmersedBoundaries: immersed_cell
 
-@kernel function compute_angle!(angle, grid, xF, yF, zF)
+@kernel function compute_nonorthogonality_angle!(angle, grid, xF, yF, zF)
     i, j = @index(Global, NTuple)
     
     @inbounds begin
@@ -45,9 +45,9 @@ end
     Nx, Ny, _  = size(cubed_sphere_panel)
 
     # Exclude the corners from the computation! (They are definitely not orthogonal)
-    params = KernelParameters((Nx-10, Ny-10), (5, 5))
+    params = KernelParameters(5:Nx-10, 5:Ny-10)
 
-    launch!(CPU(), cubed_sphere_panel, params, compute_angle!, angle_cubed_sphere, cubed_sphere_panel, xF, yF, zF)
+    launch!(CPU(), cubed_sphere_panel, params, compute_nonorthogonality_angle!, angle_cubed_sphere, cubed_sphere_panel, xF, yF, zF)
 
     first_pole_longitude = λ¹ₚ = 75
     north_poles_latitude = φₚ  = 35
@@ -68,7 +68,7 @@ end
     xF, yF, zF = cartesian_nodes
     Nx, Ny, _  = size(tripolar_grid)
 
-    launch!(CPU(), tripolar_grid, (Nx-1, Ny-1), compute_angle!, angle_tripolar, tripolar_grid, xF, yF, zF)
+    launch!(CPU(), tripolar_grid, (Nx-1, Ny-1), compute_nonorthogonality_angle!, angle_tripolar, tripolar_grid, xF, yF, zF)
 
     @test maximum(angle_tripolar) < maximum(angle_cubed_sphere)
     @test minimum(angle_tripolar) > minimum(angle_cubed_sphere)
