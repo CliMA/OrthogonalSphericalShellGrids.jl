@@ -53,8 +53,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     global_grid = TripolarGrid(CPU(), FT; halo, kwargs...)
     Nx, Ny, Nz = global_size = size(global_grid)
 
-    # Splitting the grid manually, remember, only splitting
-    # the j-direction is supported for the moment
+    # Splitting the grid manually
     lsize = local_size(arch, global_size)
 
     # Extracting the local range
