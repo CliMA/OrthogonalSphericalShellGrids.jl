@@ -29,11 +29,14 @@ function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc)
     return nothing
 end
 
-@inline reversed_halos(::Tuple{<:Any, <:Center, <:Any}, Ny, Hy) = Ny+2Hy:-1:Ny+Hy+2
-@inline reversed_halos(::Tuple{<:Any, <:Face,   <:Any}, Ny, Hy) = Ny+2Hy-1:-1:Ny+Hy+1
+@inline reversed_halos(::Tuple{<:Any, <:Center, <:Any}, Ny, Hy) = Ny+2Hy-1:-1:Ny+Hy+1
+@inline reversed_halos(::Tuple{<:Any, <:Face,   <:Any}, Ny, Hy) = Ny+2Hy:-1:Ny+Hy+2
 
-@inline west_corner_halos(::Tuple{<:Face,   <:Any, <:Any}, Hx) = 2:Hx 
+@inline west_corner_halos(::Tuple{<:Face,   <:Any, <:Any}, Hx) = 1:Hx 
 @inline west_corner_halos(::Tuple{<:Center, <:Any, <:Any}, Hx) = 1:Hx
+
+@inline adjust_x_face!(c, loc, north_halos, Px) = nothing
+@inline adjust_x_face!(c, ::Tuple{<:Face, <:Any, <:Any}, north_halos, Px) = view(c, 1:Px-1, north_halos, :) .= view(c, 2:Px, north_halos, :)
 
 # We throw away the first point!
 @inline function _switch_north_halos!(c, loc, sign, (Nx, Ny, Nz), (Hx, Hy, Hz)) 
@@ -50,6 +53,9 @@ end
     view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
     view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
     view(c, interior,    north_halos, :) .= sign .* reverse(view(c, interior,    reversed_north_halos, :), dims = 1) 
+
+    # throw out first point for the x - face locations
+    adjust_x_face!(c, loc, north_halos, size(c, 1))
 
     return nothing
 end

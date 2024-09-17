@@ -2,37 +2,33 @@ include("dependencies_for_runtests.jl")
 include("distributed_tests_utils.jl")
 using MPI
 
+tripolar_boundary_conditions = """
+    using MPI
+    MPI.Init()
+
+    include("distributed_tests_utils.jl")
+
+    arch = Distributed(CPU(), partition = Partition(2, 2))
+    grid = TripolarGrid(arch; size = (20, 20, 1), z = (-1000, 0))
+
+    u = XFaceField(grid)
+    v = YFaceField(grid)
+    c = CenterField(grid)
+
+    set!(u, (x, y, z) -> y)
+    set!(v, (x, y, z) -> y)
+    set!(c, (x, y, z) -> y)
+
+    fill_halo_regions!((u, v, c))
+
+    jldopen("distributed_tripolar_boundary_conditions_" * string(arch.local_rank) * ".jld2", "w") do file
+        file["u"] = u.data
+        file["v"] = v.data
+        file["c"] = c.data
+    end
+"""
+
 @testset "Test distributed TripolarGrid boundary conditions..." begin
-    tripolar_boundary_conditions = """
-        using MPI
-        MPI.Init()
-
-        include("distributed_tests_utils.jl")
-
-        arch = Distributed(CPU(), partition = Partition(2, 2))
-        grid = TripolarGrid(arch; size = (20, 20, 1), z = (-1000, 0))
-
-        u = XFaceField(grid)
-        v = YFaceField(grid)
-        c = CenterField(grid)
-
-        set!(u, (x, y, z) -> y)
-        set!(v, (x, y, z) -> y)
-        set!(c, (x, y, z) -> y)
-
-        fill_halo_regions!((u, v, c))
-
-        jldopen("distributed_tripolar_boundary_conditions_" * string(arch.local_rank) * ".jld2", "w") do file
-            file["u"] = u.data
-            file["v"] = v.data
-            file["c"] = c.data
-        end
-    """
-
-    write("distributed_tests.jl", tripolar_boundary_conditions)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
-    rm("distributed_tests.jl")
-
     # Run the serial computation    
     grid = TripolarGrid(size = (20, 20, 1), z = (-1000, 0))
 
@@ -46,6 +42,10 @@ using MPI
 
     fill_halo_regions!((u, v, c))
     
+    write("distributed_tests.jl", tripolar_boundary_conditions)
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
+
     # Retrieve Parallel quantities from rank 1 (the north-west rank)
     up1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["u"];
     vp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["v"];
@@ -60,9 +60,9 @@ using MPI
     @test v.data[-3:14, 7:end-1, 1] ≈ vp1.parent[:,     1:end-1, 5]
     @test c.data[-3:14, 7:end-1, 1] ≈ cp1.parent[:,     1:end-1, 5]
 
-    @test us.data[8:end, 7:end-1, 1] ≈ up3[2:end, 1:end-1, 1]
-    @test vs.data[7:end, 7:end-1, 1] ≈ vp3[:,     1:end-1, 1].parent
-    @test cs.data[7:end, 7:end-1, 1] ≈ cp3[:,     1:end-1, 1].parent
+    @test u.data[8:end, 7:end-1, 1] ≈ up3.parent[2:end, 1:end-1, 5]
+    @test v.data[7:end, 7:end-1, 1] ≈ vp3.parent[:,     1:end-1, 5]
+    @test c.data[7:end, 7:end-1, 1] ≈ cp3.parent[:,     1:end-1, 5]
 end
 
 run_slab_distributed_grid = """
