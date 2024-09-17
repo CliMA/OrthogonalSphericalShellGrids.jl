@@ -45,7 +45,7 @@ end
     Nx, Ny, _  = size(cubed_sphere_panel)
 
     # Exclude the corners from the computation! (They are definitely not orthogonal)
-    params = KernelParameters(5:Nx-10, 5:Ny-10)
+    params = KernelParameters(5:Nx-5, 5:Ny-5)
 
     launch!(CPU(), cubed_sphere_panel, params, compute_nonorthogonality_angle!, angle_cubed_sphere, cubed_sphere_panel, xF, yF, zF)
 
