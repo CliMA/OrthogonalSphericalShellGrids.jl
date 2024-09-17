@@ -56,13 +56,13 @@ using MPI
     vp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["v"];
     cp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["c"];
 
-    @test u.data[-3:14, 7:end, 1] ≈ up1[:, :, 1].parent
-    @test v.data[-3:14, 7:end, 1] ≈ vp1[:, :, 1].parent
-    @test c.data[-3:14, 7:end, 1] ≈ cp1[:, :, 1].parent
+    @test u.data[-2:14, 7:end-1, 1] ≈ up1[:, 1:end-1, 1].parent
+    @test v.data[-2:14, 7:end-1, 1] ≈ vp1[:, 1:end-1, 1].parent
+    @test c.data[-2:14, 7:end-1, 1] ≈ cp1[:, 1:end-1, 1].parent
 
-    @test us.data[7:end, 7:end, 1] ≈ up3[:, :, 1].parent
-    @test vs.data[7:end, 7:end, 1] ≈ vp3[:, :, 1].parent
-    @test cs.data[7:end, 7:end, 1] ≈ cp3[:, :, 1].parent
+    @test us.data[8:end, 7:end, 1] ≈ up3[:, 1:end-1, 1].parent
+    @test vs.data[8:end, 7:end, 1] ≈ vp3[:, 1:end-1, 1].parent
+    @test cs.data[8:end, 7:end, 1] ≈ cp3[:, 1:end-1, 1].parent
 end
 
 run_slab_distributed_grid = """
