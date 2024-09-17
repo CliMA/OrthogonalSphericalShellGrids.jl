@@ -19,9 +19,9 @@ using OrthogonalSphericalShellGrids: Zipper
     @test u.boundary_conditions.north.condition == -1
     @test v.boundary_conditions.north.condition == -1
 
-    set!(c, 1.0)
-    set!(u, 1.0)
-    set!(v, 1.0)
+    set!(c, 1)
+    set!(u, 1)
+    set!(v, 1)
 
     fill_halo_regions!(c)
     fill_halo_regions!(u)   
