@@ -29,8 +29,8 @@ using OrthogonalSphericalShellGrids: Zipper
 
     north_boundary_c = view(c.data, :, Ny+1:Ny+Hy, 1)
     north_boundary_v = view(v.data, :, Ny+1:Ny+Hy, 1)
-    @test all(north_boundary_c .== 1.0)
-    @test all(north_boundary_v .== -1.0)
+    @test all(north_boundary_c .== 1)
+    @test all(north_boundary_v .== -1)
 
     # U is special, because periodicity is hardcoded in the x-direction
     north_interior_boundary_u = view(u.data, 2:Nx-1, Ny+1:Ny+Hy, 1)
