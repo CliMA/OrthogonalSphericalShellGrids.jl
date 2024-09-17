@@ -36,7 +36,7 @@ end
 @inline west_corner_halos(::Tuple{<:Center, <:Any, <:Any}, Hx) = 1:Hx
 
 @inline adjust_x_face!(c, loc, north_halos, Px) = nothing
-@inline adjust_x_face!(c, ::Tuple{<:Face, <:Any, <:Any}, north_halos, Px) = view(c, 1:Px-1, north_halos, :) .= view(c, 2:Px, north_halos, :)
+@inline adjust_x_face!(c, ::Tuple{<:Face, <:Any, <:Any}, north_halos, Px) = view(c, 2:Px, north_halos, :) .= view(c, 1:Px-1, north_halos, :)
 
 # We throw away the first point!
 @inline function _switch_north_halos!(c, loc, sign, (Nx, Ny, Nz), (Hx, Hy, Hz)) 
