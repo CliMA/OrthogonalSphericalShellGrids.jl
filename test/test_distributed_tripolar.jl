@@ -47,14 +47,14 @@ using MPI
     fill_halo_regions!((u, v, c))
     
     # Retrieve Parallel quantities from rank 1 (the north-west rank)
-    up1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["u"]
-    vp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["v"]
-    cp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["c"]
+    up1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["u"];
+    vp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["v"];
+    cp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["c"];
 
     # Retrieve Parallel quantities from rank 3 (the north-east rank)
-    up3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["u"]
-    vp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["v"]
-    cp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["c"]
+    up3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["u"];
+    vp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["v"];
+    cp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["c"];
 
     @test u.data[-3:14, 7:end, 1] ≈ up1[:, :, 1].parent
     @test v.data[-3:14, 7:end, 1] ≈ vp1[:, :, 1].parent
@@ -64,7 +64,6 @@ using MPI
     @test vs.data[7:end, 7:end, 1] ≈ vp3[:, :, 1].parent
     @test cs.data[7:end, 7:end, 1] ≈ cp3[:, :, 1].parent
 end
-
 
 run_slab_distributed_grid = """
     using MPI

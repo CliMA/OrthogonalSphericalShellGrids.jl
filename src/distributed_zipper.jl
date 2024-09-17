@@ -21,30 +21,78 @@ switch_north_halos!(c, north_bc, grid, loc) = nothing
 
 function switch_north_halos!(c, north_bc::DistributedZipper, grid, loc) 
     sign  = north_bc.condition.sign
-    Hy = halo_size(grid)[2]
+    hz = halo_size(grid)
     sz = size(parent(c))
     gs = size(grid)
 
-    _switch_north_halos!(parent(c), loc, sign, sz, gs, Hy)
+    _switch_north_halos!(parent(c), loc, sign, sz, gs, hz)
 
     return nothing
 end
 
+
+
 # We throw away the first point!
-_switch_north_halos!(c, ::Tuple{<:Center, <:Center, <:Any}, sign, sz, (Nx, Ny, Nz), Hy) = 
-    view(c, :, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1) 
+@inline function _switch_north_halos!(c, ::Tuple{<:Center, <:Center, <:Any}, sign, sz, (Nx, Ny, Nz), (Hx, Hy, Hz)) 
+    
+    # Find the correct domain indices
+    north_halos  = Ny+Hy+1:Ny+2Hy-1
+    reversed_north_halos = Ny+2Hy:-1:Ny+Hy+2
+    west_corner = 1:Hx
+    east_corner = Nx+Hx+1:Nx+2Hx
+    interior    = Hx+1:Nx+Hx
+
+    view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
+    view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
+    view(c, interior,    north_halos, :) .= sign .* reverse(view(c, interior,    reversed_north_halos, :), dims = 1) 
+
+    return nothing
+end
 
 # We do not throw away the first point!
-_switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, (Nx, Ny, Nz), Hy) = 
-    view(c, :, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, :, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1) 
+@inline function _switch_north_halos!(c, ::Tuple{<:Center, <:Face, <:Any}, sign, sz, (Nx, Ny, Nz), (Hx, Hy, Hz))  
+    north_halos  = Ny+Hy+1:Ny+2Hy
+    reversed_north_halos = Ny+2Hy:-1:Ny+Hy+1
+    west_corner = 1:Hx
+    east_corner = Nx+Hx+1:Nx+2Hx
+    interior    = Hx+1:Nx+Hx
+
+    view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
+    view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
+    view(c, interior,    north_halos, :) .= sign .* reverse(view(c, interior,    reversed_north_halos, :), dims = 1) 
+
+    return nothing
+end
 
 # We throw away the first line and the first point!
-_switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), Hy) = 
-    view(c, 2:Px, Ny+Hy+1:Ny+2Hy-1, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+2, :), dims = 1)
+@inline function _switch_north_halos!(c, ::Tuple{<:Face, <:Center, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), (Hx, Hy, Hz)) 
+    north_halos  = Ny+Hy+1:Ny+2Hy-1
+    reversed_north_halos = Ny+2Hy:-1:Ny+Hy+2
+    west_corner = 2:Hx
+    east_corner = Nx+Hx+1:Nx+2Hx
+    interior    = Hx+1:Nx+Hx
+
+    view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
+    view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
+    view(c, interior,    north_halos, :) .= sign .* reverse(view(c, interior,    reversed_north_halos, :), dims = 1) 
+
+    return nothing
+end
 
 # We throw away the first line but not the first point!
-_switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), Hy) = 
-    view(c, 2:Px, Ny+Hy+1:Ny+2Hy, :) .= sign .* reverse(view(c, 2:Px, Ny+2Hy:-1:Ny+Hy+1, :), dims = 1)
+@inline function _switch_north_halos!(c, ::Tuple{<:Face, <:Face, <:Any}, sign, (Px, Py, Pz), (Nx, Ny, Nz), (Hx, Hy, Hz)) 
+    north_halos  = Ny+Hy+1:Ny+2Hy
+    reversed_north_halos = Ny+2Hy:-1:Ny+Hy+1
+    west_corner = 2:Hx
+    east_corner = Nx+Hx+1:Nx+2Hx
+    interior    = Hx+1:Nx+Hx
+
+    view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
+    view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
+    view(c, interior,    north_halos, :) .= sign .* reverse(view(c, interior,    reversed_north_halos, :), dims = 1) 
+
+    return nothing
+end
 
 function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)
     if fill_boundary_normal_velocities

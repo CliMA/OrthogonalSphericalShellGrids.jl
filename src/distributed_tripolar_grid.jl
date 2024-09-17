@@ -35,10 +35,16 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     # Check that partitioning in x is correct:
     try
         if isodd(px) && (px != 1)
-            throw(ArgumentError("TOnly even partitioning in x is supported with the TripolarGrid"))
+            throw(ArgumentError("Only even partitioning in x is supported with the TripolarGrid"))
         end
     catch 
         throw(ArgumentError("The x partition $(px) is not supported. The partition in x must be an even number. "))
+    end
+
+    # a slab decomposition in x is not supported
+    if px != 1 && py == 1
+        throw(ArgumentError("A x-only partitioning is not supported with the TripolarGrid. \n 
+                            Please, use a y partitioning configuration or a x-y pencil partitioning."))
     end
 
     Hx, Hy, Hz = halo
@@ -120,14 +126,10 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
         northeast_recv_rank = receiving_rank(arch; receive_idx_x = northeast_idx_x)
         north_recv_rank     = receiving_rank(arch)
 
-        if workers[2] != 1
-            if yrank == workers[2] - 1
-                arch.connectivity.northwest = northwest_recv_rank
-                arch.connectivity.northeast = northeast_recv_rank
-                arch.connectivity.north     = north_recv_rank
-            end
-        else
-            arch.connectivity.north = north_recv_rank
+        if yrank == workers[2] - 1
+            arch.connectivity.northwest = northwest_recv_rank
+            arch.connectivity.northeast = northeast_recv_rank
+            arch.connectivity.north     = north_recv_rank
         end
     end
 
