@@ -122,8 +122,8 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
 
         if workers[2] != 1
             if yrank == workers[2] - 1
-                arch.connectivity.northeast = northwest_recv_rank
-                arch.connectivity.northwest = northeast_recv_rank
+                arch.connectivity.northwest = northwest_recv_rank
+                arch.connectivity.northeast = northeast_recv_rank
                 arch.connectivity.north     = north_recv_rank
             end
         else
