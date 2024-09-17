@@ -83,6 +83,15 @@ run_pencil_distributed_grid = """
     run_distributed_tripolar_grid(arch, "distributed_pencil_tripolar.jld2")
 """
 
+run_large_pencil_distributed_grid = """
+    using MPI
+    MPI.Init()
+
+    include("distributed_tests_utils.jl")
+    arch = Distributed(CPU(), partition = Partition(4, 2))
+    run_distributed_tripolar_grid(arch, "distributed_large_pencil_tripolar.jld2")
+"""
+
 @testset "Test distributed TripolarGrid simulations..." begin
     # Run the serial computation    
     grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0))
@@ -101,16 +110,16 @@ run_pencil_distributed_grid = """
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
-    up_slab = jldopen("distributed_slab_tripolar.jld2")["u"]
-    vp_slab = jldopen("distributed_slab_tripolar.jld2")["v"]
-    ηp_slab = jldopen("distributed_slab_tripolar.jld2")["η"]
-    cp_slab = jldopen("distributed_slab_tripolar.jld2")["c"]
+    up = jldopen("distributed_slab_tripolar.jld2")["u"]
+    vp = jldopen("distributed_slab_tripolar.jld2")["v"]
+    ηp = jldopen("distributed_slab_tripolar.jld2")["η"]
+    cp = jldopen("distributed_slab_tripolar.jld2")["c"]
 
     # Test slab partitioning
-    @test interior(us, :, :, 1) ≈ up_slab
-    @test interior(vs, :, :, 1) ≈ vp_slab
-    @test interior(cs, :, :, 1) ≈ cp_slab
-    @test interior(ηs, :, :, 1) ≈ ηp_slab
+    @test interior(us, :, :, 1) ≈ up
+    @test interior(vs, :, :, 1) ≈ vp
+    @test interior(cs, :, :, 1) ≈ cp
+    @test interior(ηs, :, :, 1) ≈ ηp
 
     # Run the distributed grid simulation with a pencil configuration
     write("distributed_tests.jl", run_pencil_distributed_grid)
@@ -118,13 +127,31 @@ run_pencil_distributed_grid = """
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
-    up_pencil = jldopen("distributed_pencil_tripolar.jld2")["u"]
-    vp_pencil = jldopen("distributed_pencil_tripolar.jld2")["v"]
-    ηp_pencil = jldopen("distributed_pencil_tripolar.jld2")["η"]
-    cp_pencil = jldopen("distributed_pencil_tripolar.jld2")["c"]
+    up = jldopen("distributed_pencil_tripolar.jld2")["u"]
+    vp = jldopen("distributed_pencil_tripolar.jld2")["v"]
+    ηp = jldopen("distributed_pencil_tripolar.jld2")["η"]
+    cp = jldopen("distributed_pencil_tripolar.jld2")["c"]
 
-    @test interior(us, :, :, 1) ≈ up_pencil
-    @test interior(vs, :, :, 1) ≈ vp_pencil
-    @test interior(cs, :, :, 1) ≈ cp_pencil
-    @test interior(ηs, :, :, 1) ≈ ηp_pencil
+    @test interior(us, :, :, 1) ≈ up
+    @test interior(vs, :, :, 1) ≈ vp
+    @test interior(cs, :, :, 1) ≈ cp
+    @test interior(ηs, :, :, 1) ≈ ηp
+
+    # We try now with more ranks in the x-direction. This is not a trivial
+    # test as we are now splitting, not only where the singularities are, but
+    # also in the middle of the north fold. This is a more challenging test
+    write("distributed_tests.jl", run_large_pencil_distributed_grid)
+    mpiexec(cmd -> run(`$cmd -n 8 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
+
+    # Retrieve Parallel quantities
+    up = jldopen("distributed_large_pencil_tripolar.jld2")["u"]
+    vp = jldopen("distributed_large_pencil_tripolar.jld2")["v"]
+    ηp = jldopen("distributed_large_pencil_tripolar.jld2")["η"]
+    cp = jldopen("distributed_large_pencil_tripolar.jld2")["c"]
+
+    @test interior(us, :, :, 1) ≈ up
+    @test interior(vs, :, :, 1) ≈ vp
+    @test interior(cs, :, :, 1) ≈ cp
+    @test interior(ηs, :, :, 1) ≈ ηp
 end
