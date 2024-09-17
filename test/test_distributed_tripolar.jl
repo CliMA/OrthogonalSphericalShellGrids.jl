@@ -15,9 +15,9 @@ tripolar_boundary_conditions = """
     v = YFaceField(grid)
     c = CenterField(grid)
 
-    set!(u, (x, y, z) -> y)
-    set!(v, (x, y, z) -> y)
-    set!(c, (x, y, z) -> y)
+    set!(u, (x, y, z) -> y * x)
+    set!(v, (x, y, z) -> y * x)
+    set!(c, (x, y, z) -> y * x)
 
     fill_halo_regions!((u, v, c))
 
@@ -36,9 +36,9 @@ tripolar_boundary_conditions = """
     v = YFaceField(grid)
     c = CenterField(grid)
 
-    set!(u, (x, y, z) -> y)
-    set!(v, (x, y, z) -> y)
-    set!(c, (x, y, z) -> y)
+    set!(u, (x, y, z) -> y * x)
+    set!(v, (x, y, z) -> y * x)
+    set!(c, (x, y, z) -> y * x)
 
     fill_halo_regions!((u, v, c))
     
@@ -84,15 +84,6 @@ run_pencil_distributed_grid = """
 """
 
 @testset "Test distributed TripolarGrid simulations..." begin
-    # Run the distributed grid simulation
-    write("distributed_tests.jl", run_slab_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
-    rm("distributed_tests.jl")
-
-    write("distributed_tests.jl", run_pencil_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
-    rm("distributed_tests.jl")
-
     # Run the serial computation    
     grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0))
     grid = mask_singularities(grid)
@@ -104,21 +95,33 @@ run_pencil_distributed_grid = """
     cs = simulation.model.tracers.c
     ηs = simulation.model.free_surface.η
 
+    # Run the distributed grid simulation with a slab configuration
+    write("distributed_tests.jl", run_slab_distributed_grid)
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
+
     # Retrieve Parallel quantities
     up_slab = jldopen("distributed_slab_tripolar.jld2")["u"]
     vp_slab = jldopen("distributed_slab_tripolar.jld2")["v"]
     ηp_slab = jldopen("distributed_slab_tripolar.jld2")["η"]
     cp_slab = jldopen("distributed_slab_tripolar.jld2")["c"]
 
-    up_pencil = jldopen("distributed_pencil_tripolar.jld2")["u"]
-    vp_pencil = jldopen("distributed_pencil_tripolar.jld2")["v"]
-    ηp_pencil = jldopen("distributed_pencil_tripolar.jld2")["η"]
-    cp_pencil = jldopen("distributed_pencil_tripolar.jld2")["c"]
-
+    # Test slab partitioning
     @test interior(us, :, :, 1) ≈ up_slab
     @test interior(vs, :, :, 1) ≈ vp_slab
     @test interior(cs, :, :, 1) ≈ cp_slab
     @test interior(ηs, :, :, 1) ≈ ηp_slab
+
+    # Run the distributed grid simulation with a pencil configuration
+    write("distributed_tests.jl", run_pencil_distributed_grid)
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    rm("distributed_tests.jl")
+
+    # Retrieve Parallel quantities
+    up_pencil = jldopen("distributed_pencil_tripolar.jld2")["u"]
+    vp_pencil = jldopen("distributed_pencil_tripolar.jld2")["v"]
+    ηp_pencil = jldopen("distributed_pencil_tripolar.jld2")["η"]
+    cp_pencil = jldopen("distributed_pencil_tripolar.jld2")["c"]
 
     @test interior(us, :, :, 1) ≈ up_pencil
     @test interior(vs, :, :, 1) ≈ vp_pencil

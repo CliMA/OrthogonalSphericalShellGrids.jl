@@ -336,10 +336,10 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
     southermost_latitude = grid.conformal_mapping.southermost_latitude
 
     return TripolarGrid(child_arch, FT;
-        halo,
-        size,
-        north_poles_latitude,
-        first_pole_longitude,
-        southermost_latitude,
-        z)
+                        halo,
+                        size,
+                        north_poles_latitude,
+                        first_pole_longitude,
+                        southermost_latitude,
+                        z)
 end
