@@ -39,8 +39,9 @@ end
 
         Azᶜᶜᵃ[i, j] = spherical_area_quadrilateral(a, b, c, d) * radius^2
         
-        # To be consistent it is better to define the face areas as products of the edge lengths
-        # rather than using the spherical area of the face (cit JMC).
+        # To be able to conserve kinetic energy specifically the momentum equation, 
+        # it is better to define the face areas as products of 
+        # the edge lengths rather than using the spherical area of the face (cit JMC).
         # TODO: find a reference to support this statement
         Azᶠᶜᵃ[i, j] = Δyᶠᶜᵃ[i, j] * Δxᶠᶜᵃ[i, j]
         Azᶜᶠᵃ[i, j] = Δyᶜᶠᵃ[i, j] * Δxᶜᶠᵃ[i, j]
