@@ -16,7 +16,7 @@ Adapt = "4"
 JLD2 = "0.4"
 KernelAbstractions = "0.9"
 MPI = "0.20"
-Oceananigans = "≥ 0.91.3"
+Oceananigans = "0.91.3 - 1"
 OffsetArrays = "1"
 julia = "1"
 
