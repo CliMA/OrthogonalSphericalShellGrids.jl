@@ -13,7 +13,7 @@ OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 
 [compat]
 Adapt = "4"
-JLD2 = "0.4"
+JLD2 = "0.4, 0.5"
 KernelAbstractions = "0.9"
 MPI = "0.20"
 Oceananigans = "0.91.3 - 1"
