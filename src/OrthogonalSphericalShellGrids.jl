@@ -30,5 +30,6 @@ include("grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
 include("with_halo.jl")
 include("split_explicit_free_surface.jl")
+include("nearest_neighbor_interpolation.jl")
 
 end
