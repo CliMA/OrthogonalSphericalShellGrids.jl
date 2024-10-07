@@ -16,7 +16,6 @@ using Oceananigans.Operators
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices                       
 
 using Adapt 
-using JLD2
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using OffsetArrays
