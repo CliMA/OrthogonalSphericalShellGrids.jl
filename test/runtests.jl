@@ -1,15 +1,15 @@
 include("dependencies_for_runtests.jl")
 
 @testset "Unit tests..." begin
-    grid = TripolarGrid(size = (360, 180, 1), z = (0, 1), 
+    grid = TripolarGrid(size = (4, 5, 1), z = (0, 1), 
                         first_pole_longitude = 75, 
                         north_poles_latitude = 35,
                         southermost_latitude = -80)
 
     @test grid isa TripolarGrid
 
-    @test grid.Nx == 360
-    @test grid.Ny == 180
+    @test grid.Nx == 4
+    @test grid.Ny == 5
     @test grid.Nz == 1
 
     @test grid.conformal_mapping.first_pole_longitude == 75
