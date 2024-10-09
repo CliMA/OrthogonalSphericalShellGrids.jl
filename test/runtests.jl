@@ -23,7 +23,7 @@ include("dependencies_for_runtests.jl")
     @test maximum(grid.φᶜᶜᵃ) ≤ 90
 
     # The minimum latitude is not exactly the southermost latitude because the grid 
-    # ondulates slightly to maintain the same analytical description in the whole sphere
+    # undulates slightly to maintain the same analytical description in the whole sphere
     # (i.e. constant latitude lines do not exist anywhere in this grid)
     @test minimum(grid.φᶜᶜᵃ .+ min_Δφ / 10) ≥ grid.conformal_mapping.southermost_latitude 
 end
