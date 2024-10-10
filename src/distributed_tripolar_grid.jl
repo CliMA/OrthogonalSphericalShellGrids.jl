@@ -220,13 +220,13 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     north_poles_latitude = grid.conformal_mapping.north_poles_latitude
     first_pole_longitude = grid.conformal_mapping.first_pole_longitude
-    southermost_latitude = grid.conformal_mapping.southermost_latitude
+    southernmost_latitude = grid.conformal_mapping.southernmost_latitude
 
     return TripolarGrid(child_arch, FT;
         halo,
         size,
         north_poles_latitude,
         first_pole_longitude,
-        southermost_latitude,
+        southernmost_latitude,
         z)
 end
