@@ -28,7 +28,7 @@ include("dependencies_for_runtests.jl")
     # The minimum latitude is not exactly the southermost latitude because the grid 
     # undulates slightly to maintain the same analytical description in the whole sphere
     # (i.e. constant latitude lines do not exist anywhere in this grid)
-    @test minimum(φᶜᶜᶜ .+ min_Δφ / 10) ≥ grid.conformal_mapping.southernmost_latitude 
+    @test minimum(φᶜᶜᵃ .+ min_Δφ / 10) ≥ grid.conformal_mapping.southernmost_latitude 
 end
 
 include("test_tripolar_grid.jl")
