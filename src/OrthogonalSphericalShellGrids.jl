@@ -21,11 +21,11 @@ using OffsetArrays
 
 @inline convert_to_0_360(x) = ((x % 360) + 360) % 360
 
-include("grid_utils.jl")
+include("tripolar_grid_utils.jl")
 include("zipper_boundary_condition.jl")
 include("generate_tripolar_coordinates.jl")
 include("tripolar_grid.jl")
-include("grid_extensions.jl")
+include("tripolar_grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
 include("with_halo.jl")
 include("split_explicit_free_surface.jl")

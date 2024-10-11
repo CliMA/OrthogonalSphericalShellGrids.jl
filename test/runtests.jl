@@ -1,16 +1,36 @@
-using OrthogonalSphericalShellGrids
-using OrthogonalSphericalShellGrids.Oceananigans
-using Oceananigans: GPU, CPU
-using Oceananigans.CUDA
-using Test
+include("dependencies_for_runtests.jl")
 
-arch = CUDA.has_cuda_gpu() ? GPU() : CPU()
+@testset "Unit tests..." begin
+    grid = TripolarGrid(size = (4, 5, 1), z = (0, 1), 
+                        first_pole_longitude = 75, 
+                        north_poles_latitude = 35,
+                        southernmost_latitude = -80)
 
-@testset "OrthogonalSphericalShellGrids.jl" begin
-    # We probably do not need any unit tests.
+    @test grid isa TripolarGrid
 
-    # Test the grid?
-    grid = TripolarGrid(arch; size = (10, 10, 1))
+    @test grid.Nx == 4
+    @test grid.Ny == 5
+    @test grid.Nz == 1
 
-    # Test boundary conditions?
+    @test grid.conformal_mapping.first_pole_longitude == 75
+    @test grid.conformal_mapping.north_poles_latitude == 35
+    @test grid.conformal_mapping.southernmost_latitude == -80
+
+    λᶜᶜᵃ = λnodes(grid, Center(), Center())
+    φᶜᶜᵃ = φnodes(grid, Center(), Center())
+
+    min_Δφ = minimum(φᶜᶜᵃ[:, 2] .- φᶜᶜᵃ[:, 1])
+
+    @test minimum(λᶜᶜᵃ) ≥ 0
+    @test maximum(λᶜᶜᵃ) ≤ 360
+    @test maximum(φᶜᶜᵃ) ≤ 90
+
+    # The minimum latitude is not exactly the southermost latitude because the grid 
+    # undulates slightly to maintain the same analytical description in the whole sphere
+    # (i.e. constant latitude lines do not exist anywhere in this grid)
+    @test minimum(φᶜᶜᵃ .+ min_Δφ / 10) ≥ grid.conformal_mapping.southernmost_latitude 
 end
+
+include("test_tripolar_grid.jl")
+include("test_zipper_boundary_conditions.jl")
+
