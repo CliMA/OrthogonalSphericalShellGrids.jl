@@ -11,9 +11,9 @@ using OrthogonalSphericalShellGrids: Zipper
     u = XFaceField(grid)
     v = YFaceField(grid)
 
-    @test c.boundary_conditions.north isa ZipperBoundaryCondition
-    @test u.boundary_conditions.north isa ZipperBoundaryCondition
-    @test v.boundary_conditions.north isa ZipperBoundaryCondition
+    @test c.boundary_conditions.north.classification isa Zipper
+    @test u.boundary_conditions.north.classification isa Zipper
+    @test v.boundary_conditions.north.classification isa Zipper
 
     # The velocity fields are reversed at the north boundary 
     # boundary_conditions.north.condition == -1, while the tracer
