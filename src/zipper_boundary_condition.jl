@@ -74,9 +74,7 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = s * c[i′, Ny - j + 1, k] 
-        end
+        @inbounds c[i, Ny + j, k] = s * c[i′, Ny - j + 1, k] 
     end
 
     return nothing
@@ -91,9 +89,7 @@ end
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = s * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
+        @inbounds c[i, Ny + j, k] = s * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
 
     return nothing
@@ -106,9 +102,7 @@ end
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
     end
 
     return nothing
@@ -121,9 +115,7 @@ end
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
 
     return nothing

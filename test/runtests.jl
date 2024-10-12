@@ -1,4 +1,5 @@
 include("dependencies_for_runtests.jl")
+include("distributed_tests_utils.jl")
 
 @testset "Unit tests..." begin
     grid = TripolarGrid(size = (4, 5, 1), z = (0, 1), 
