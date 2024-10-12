@@ -10,14 +10,14 @@ function with_halo(new_halo, old_grid::TripolarGrid)
 
     north_poles_latitude = old_grid.conformal_mapping.north_poles_latitude
     first_pole_longitude = old_grid.conformal_mapping.first_pole_longitude
-    southermost_latitude = old_grid.conformal_mapping.southermost_latitude
+    southernmost_latitude = old_grid.conformal_mapping.southernmost_latitude
 
     new_grid = TripolarGrid(architecture(old_grid), eltype(old_grid);
                             size, z, halo = new_halo,
                             radius = old_grid.radius,
                             north_poles_latitude,
                             first_pole_longitude,
-                            southermost_latitude)
+                            southernmost_latitude)
 
     return new_grid
 end
@@ -32,13 +32,13 @@ function with_halo(new_halo, old_grid::DistributedTripolarGrid)
 
     north_poles_latitude = old_grid.conformal_mapping.north_poles_latitude
     first_pole_longitude = old_grid.conformal_mapping.first_pole_longitude
-    southermost_latitude = old_grid.conformal_mapping.southermost_latitude
+    southernmost_latitude = old_grid.conformal_mapping.southernmost_latitude
 
     return TripolarGrid(arch, eltype(old_grid);
                         halo = new_halo, 
                         size = N, 
                         north_poles_latitude,
                         first_pole_longitude,
-                        southermost_latitude,
+                        southernmost_latitude,
                         z)
 end

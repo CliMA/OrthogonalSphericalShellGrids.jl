@@ -1,8 +1,8 @@
 using OrthogonalSphericalShellGrids
 using Oceananigans
-using Oceananigans.Grids: halo_size
 using Oceananigans.Utils
-using Oceananigans.Units
+using Oceananigans.Grids: halo_size, φnodes, λnodes
+using Oceananigans.Utils
 using Oceananigans.BoundaryConditions
 using OrthogonalSphericalShellGrids: get_cartesian_nodes_and_vertices
 using Oceananigans.CUDA

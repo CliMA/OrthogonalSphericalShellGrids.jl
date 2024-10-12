@@ -2,20 +2,20 @@
 struct Tripolar{N, F, S}
     north_poles_latitude :: N
     first_pole_longitude :: F
-    southermost_latitude :: S
+    southernmost_latitude :: S
 end
 
 Adapt.adapt_structure(to, t::Tripolar) = 
     Tripolar(Adapt.adapt(to, t.north_poles_latitude),
              Adapt.adapt(to, t.first_pole_longitude),
-             Adapt.adapt(to, t.southermost_latitude))
+             Adapt.adapt(to, t.southernmost_latitude))
 
 const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, Arch}
 
 """
     TripolarGrid(arch = CPU(), FT::DataType = Float64;
                  size,
-                 southermost_latitude = -80,
+                 southernmost_latitude = -80,
                  halo                 = (4, 4, 4),
                  radius               = R_Earth,
                  z                    = (0, 1),
@@ -39,7 +39,7 @@ Keyword Arguments
 =================
 
 - `size`: The number of cells in the (longitude, latitude, vertical) dimensions.
-- `southermost_latitude`: The southernmost `Center` latitude of the grid. Default is -80.
+- `southernmost_latitude`: The southernmost `Center` latitude of the grid. Default is -80.
 - `halo`: The halo size in the (longitude, latitude, vertical) dimensions. Default is (4, 4, 4).
 - `radius`: The radius of the spherical shell. Default is `R_Earth`.
 - `z`: The vertical ``z``-coordinate range of the grid. Default is (0, 1).
@@ -57,7 +57,7 @@ The north singularities are located at
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
-                      southermost_latitude = -80, # The southermost `Center` latitude of the grid
+                      southernmost_latitude = -80, # The southermost `Center` latitude of the grid
                       halo                 = (4, 4, 4), 
                       radius               = R_Earth, 
                       z                    = (0, 1),
@@ -68,7 +68,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # to construct the grid on the GPU. This is not a huge problem as
     # grid generation is quite fast, but it might become for sub-kilometer grids
 
-    latitude  = (southermost_latitude, 90)
+    latitude  = (southernmost_latitude, 90)
     longitude = (-180, 180) 
         
     focal_distance = tand((90 - north_poles_latitude) / 2)
@@ -87,8 +87,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), Nz, Hz, z,         :z,         CPU())
 
     # The φ coordinate is a bit more complicated because the center points start from
-    # southermost_latitude and end at 90ᵒ N.
-    φᵃᶜᵃ = collect(range(southermost_latitude, 90, length = Nφ))
+    # southernmost_latitude and end at 90ᵒ N.
+    φᵃᶜᵃ = collect(range(southernmost_latitude, 90, length = Nφ))
     Δφ = φᵃᶜᵃ[2] - φᵃᶜᵃ[1]
     φᵃᶠᵃ = φᵃᶜᵃ .- Δφ / 2
 
@@ -322,7 +322,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                                            on_architecture(arch, Azᶜᶠᵃ),
                                                                            on_architecture(arch, Azᶠᶠᵃ),
                                                                            radius,
-                                                                           Tripolar(north_poles_latitude, first_pole_longitude, southermost_latitude))
+                                                                           Tripolar(north_poles_latitude, first_pole_longitude, southernmost_latitude))
              
     return grid
 end
