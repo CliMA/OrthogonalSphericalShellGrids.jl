@@ -80,11 +80,13 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
         throw(ArgumentError("The number of cells in the longitude dimension should be even!"))
     end
 
+    topology = (Periodic, Bounded, Bounded)
+
     # the λ and Z coordinate is the same as for the other grids,
     # but for the φ coordinate we need to remove one point at the north
     # because the the north pole is a `Center`point, not on `Face` point...
-    Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, Periodic(), size, halo, longitude, :longitude, 1, CPU())
-    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT,  Bounded(), size, halo, z,         :z,         3, CPU())
+    Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, topology, size, halo, longitude, :longitude, 1, CPU())
+    Lz, zᵃᵃᶠ, zᵃᵃᶜ, Δzᵃᵃᶠ, Δzᵃᵃᶜ = generate_coordinate(FT, topology, size, halo, z,         :z,         3, CPU())
 
     # The φ coordinate is a bit more complicated because the center points start from
     # southernmost_latitude and end at 90ᵒ N.
