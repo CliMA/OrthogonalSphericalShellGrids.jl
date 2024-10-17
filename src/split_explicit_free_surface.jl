@@ -1,7 +1,6 @@
 using Oceananigans.Grids: halo_size, with_halo
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState,
                                                         SplitExplicitFreeSurface,
-                                                        calculate_column_height!,
                                                         augmented_kernel_offsets,
                                                         augmented_kernel_size
 
@@ -15,20 +14,6 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
     Gᵁ = Field((Face,   Center, Nothing), grid)
     Gⱽ = Field((Center, Face,   Nothing), grid)
 
-    bcs_fc = positive_zipper_boundary(Gᵁ, grid)
-    bcs_cf = positive_zipper_boundary(Gⱽ, grid)
-    
-    # Hᶠᶜ and Hᶜᶠ do not follow the TripolarGrid convention that: fields on faces
-    # need the sign to switch at the north halos. For this reason, we need to 
-    # provide the boundary conditions manually.
-    Hᶠᶜ = Field((Face,   Center, Nothing), grid; boundary_conditions = bcs_fc)
-    Hᶜᶠ = Field((Center, Face,   Nothing), grid; boundary_conditions = bcs_cf)
-
-    calculate_column_height!(Hᶠᶜ, (Face, Center, Center))
-    calculate_column_height!(Hᶜᶠ, (Center, Face, Center))
-
-    fill_halo_regions!((Hᶠᶜ, Hᶜᶠ))
-
     # In a non-parallel grid we calculate only the interior,
     # otherwise, the rules remain the same
     kernel_size    = tripolar_augmented_kernel_size(grid)
@@ -36,7 +21,7 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
 
     kernel_parameters = KernelParameters(kernel_size, kernel_offsets)
     
-    return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
+    return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, kernel_parameters)
 end
 
 positive_zipper_boundary(default_field, ::TRG) =

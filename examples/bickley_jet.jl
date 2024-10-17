@@ -15,12 +15,15 @@ north_poles_latitude = φₚ  = 25
 
 λ²ₚ = λ¹ₚ + 180
 
+z_faces = ZStarVerticalCoordinate(-100, 0)
+
 # Build a tripolar grid with singularities at
 # (0, -90), (45, 25), (225, 25)
 underlying_grid = TripolarGrid(; size = (Nx, Ny, 1), 
                                  halo = (5, 5, 5), 
                                  first_pole_longitude,
-                                 north_poles_latitude)
+                                 north_poles_latitude,
+                                 z = z_faces)
 
 # We need a bottom height field that ``masks'' the singularities
 bottom_height(λ, φ) = ((abs(λ - λ¹ₚ) < 5) & (abs(φₚ - φ) < 5)) |
