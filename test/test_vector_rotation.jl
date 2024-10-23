@@ -128,9 +128,9 @@ function test_vector_rotation(grid)
     @test all(on_architecture(CPU(), interior(uₑ)) .≈ 0.5)
 end
 
-@testset "Conversion from Intrinsic to Extrinsic reference frame [$(typeof(arch))]" begin
+@testset "Conversion from Intrinsic to Extrinsic reference frame" begin
     @info "  Testing the conversion of a vector between the Intrinsic and Extrinsic reference frame"
-    grid = TripolarGrid(arch, size = (20, 20, 1), z = (0, 1))
+    grid = TripolarGrid(size = (20, 20, 1), z = (0, 1))
 
     test_vector_rotation(grid)
 end
