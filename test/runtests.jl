@@ -34,3 +34,25 @@ end
 include("test_tripolar_grid.jl")
 include("test_zipper_boundary_conditions.jl")
 
+function tripolar_model_timesteps(grid, free_surface)
+    
+    
+    time_step!(model, 1)
+
+    return true
+end
+
+@testset "Model tests..." begin
+    grid = TripolarGrid(size = (10, 10, 1))
+
+    # Wrong free surface
+    @test_throws ArgumentError HydrostaticFreeSurfaceModel(; grid)
+
+    free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
+    model = HydrostaticFreeSurfaceModel(; grid, free_surface)
+
+    @test begin
+        time_step!(model, 1.0)
+        true
+    end
+end
