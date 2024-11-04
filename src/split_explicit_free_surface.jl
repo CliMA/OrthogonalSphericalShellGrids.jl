@@ -83,6 +83,11 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
 
         settings  = free_surface.settings 
 
+        if settings.substepping isa FixedTimestepSize
+                throw(ArgumentError("A variable substepping through a CFL condition is not supported for the `SplitExplicitFreeSurface` on a `TripolarGrid`. \n
+                                     Provide a fixed number of subteps."))
+        end
+
         old_halos  = halo_size(grid)
         Nsubsteps  = length(settings.substepping.averaging_weights)
 
