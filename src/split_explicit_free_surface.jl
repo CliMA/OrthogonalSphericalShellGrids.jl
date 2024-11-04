@@ -3,7 +3,8 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState,
                                                         SplitExplicitFreeSurface,
                                                         calculate_column_height!,
                                                         augmented_kernel_offsets,
-                                                        augmented_kernel_size
+                                                        augmented_kernel_size,
+                                                        FixedTimeStepSize
 
 import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface, SplitExplicitAuxiliaryFields
 
@@ -85,7 +86,7 @@ function materialize_free_surface(free_surface::SplitExplicitFreeSurface, veloci
 
         if settings.substepping isa FixedTimestepSize
                 throw(ArgumentError("A variable substepping through a CFL condition is not supported for the `SplitExplicitFreeSurface` on a `TripolarGrid`. \n
-                                     Provide a fixed number of subteps."))
+                                     Provide a fixed number of substeps through the `substeps` keyword argument."))
         end
 
         old_halos  = halo_size(grid)
