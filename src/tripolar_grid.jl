@@ -16,11 +16,11 @@ const TripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} = OrthogonalSphericalShellGri
     TripolarGrid(arch = CPU(), FT::DataType = Float64;
                  size,
                  southernmost_latitude = -80,
-                 halo                 = (4, 4, 4),
-                 radius               = R_Earth,
-                 z                    = (0, 1),
-                 north_poles_latitude = 45,
-                 first_pole_longitude = 0)
+                 halo = (4, 4, 4),
+                 radius = R_Earth,
+                 z = (0, 1),
+                 north_poles_latitude = 55,
+                 first_pole_longitude = 70)
 
 Construct a tripolar grid on a spherical shell.
 
@@ -58,11 +58,11 @@ The north singularities are located at
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
                       southernmost_latitude = -80, # The southermost `Center` latitude of the grid
-                      halo                 = (4, 4, 4), 
-                      radius               = R_Earth, 
-                      z                    = (0, 1),
-                      north_poles_latitude = 45,
-                      first_pole_longitude = 0)  # The second pole is at `λ = first_pole_longitude + 180ᵒ`
+                      halo = (4, 4, 4), 
+                      radius = R_Earth, 
+                      z = (0, 1),
+                      north_poles_latitude = 55,
+                      first_pole_longitude = 70)  # The second pole is at `λ = first_pole_longitude + 180ᵒ`
 
     # TODO: change a couple of allocations here and there to be able 
     # to construct the grid on the GPU. This is not a huge problem as
