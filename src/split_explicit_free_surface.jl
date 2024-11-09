@@ -13,22 +13,8 @@ import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surfac
 # a slab decomposition in the y-direction.
 function SplitExplicitAuxiliaryFields(grid::TRG)
 
-    Gᵁ = Field((Face,   Center, Nothing), grid)
-    Gⱽ = Field((Center, Face,   Nothing), grid)
-
-    bcs_fc = positive_zipper_boundary(Gᵁ, grid)
-    bcs_cf = positive_zipper_boundary(Gⱽ, grid)
-    
-    # Hᶠᶜ and Hᶜᶠ do not follow the TripolarGrid convention that: fields on faces
-    # need the sign to switch at the north halos. For this reason, we need to 
-    # provide the boundary conditions manually.
-    Hᶠᶜ = Field((Face,   Center, Nothing), grid; boundary_conditions = bcs_fc)
-    Hᶜᶠ = Field((Center, Face,   Nothing), grid; boundary_conditions = bcs_cf)
-
-    calculate_column_height!(Hᶠᶜ, (Face, Center, Center))
-    calculate_column_height!(Hᶜᶠ, (Center, Face, Center))
-
-    fill_halo_regions!((Hᶠᶜ, Hᶜᶠ))
+    Gᵁ = Field{Face,   Center, Nothing}(grid)
+    Gⱽ = Field{Center, Face,   Nothing}(grid)
 
     # In a non-parallel grid we calculate only the interior,
     # otherwise, the rules remain the same
@@ -37,35 +23,7 @@ function SplitExplicitAuxiliaryFields(grid::TRG)
 
     kernel_parameters = KernelParameters(kernel_size, kernel_offsets)
     
-    return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, Hᶠᶜ, Hᶜᶠ, kernel_parameters)
-end
-
-positive_zipper_boundary(default_field, ::TRG) =
-        FieldBoundaryConditions(
-            top    = nothing,
-            bottom = nothing,
-            west   = default_field.boundary_conditions.west,
-            east   = default_field.boundary_conditions.east,
-            south  = default_field.boundary_conditions.south,
-            north  = ZipperBoundaryCondition()
-        )
-
-function positive_zipper_boundary(default_field, grid::DTRG)  
-        arch = architecture(grid)
-        workers = ranks(arch.partition)
-
-        if arch.local_rank == workers[2] - 1
-                return  FieldBoundaryConditions(
-                                top    = nothing,
-                                bottom = nothing,
-                                west   = default_field.boundary_conditions.west,
-                                east   = default_field.boundary_conditions.east,
-                                south  = default_field.boundary_conditions.south,
-                                north  = ZipperBoundaryCondition()
-                        )
-        else
-                return default_field.boundary_conditions
-        end
+    return SplitExplicitAuxiliaryFields(Gᵁ, Gⱽ, kernel_parameters)
 end
 
 @inline tripolar_augmented_kernel_size(grid::TRG)    = (grid.Nx, grid.Ny + grid.Hy - 1)
