@@ -8,6 +8,7 @@ using Oceananigans: Face, Center
 using Oceananigans.Architectures: device, on_architecture
 using Oceananigans.BoundaryConditions
 using Oceananigans.Fields: index_binary_search
+using Oceananigans.Grids: RightConnected
 using Oceananigans.Grids: R_Earth, 
                           halo_size, spherical_area_quadrilateral,
                           lat_lon_to_cartesian, generate_coordinate, topology
