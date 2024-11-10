@@ -40,9 +40,17 @@ include("test_zipper_boundary_conditions.jl")
     # Wrong free surface
     @test_throws ArgumentError HydrostaticFreeSurfaceModel(; grid)
 
-    free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
+    free_surface = SplitExplicitFreeSurface(grid; substeps = 12)
     model = HydrostaticFreeSurfaceModel(; grid, free_surface)
 
+    # Tests the grid has been extended
+    η = model.free_surface.η
+    P = model.free_surface.kernel_parameters
+
+    Hx, Hy, _ = halo_size(grid)
+
+    @test Hy == length(free_surface.substepping.averaging_weights) + 1
+    
     @test begin
         time_step!(model, 1.0)
         true
