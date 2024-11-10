@@ -1,7 +1,7 @@
 using Oceananigans.Grids: halo_size, with_halo
+
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitState,
                                                         SplitExplicitFreeSurface,
-                                                        calculate_column_height!,
                                                         augmented_kernel_offsets,
                                                         augmented_kernel_size,
                                                         FixedTimeStepSize
