@@ -15,7 +15,8 @@ using Oceananigans.Grids: R_Earth,
 using Oceananigans.Operators
 using Oceananigans.Utils: get_cartesian_nodes_and_vertices
 
-using Adapt 
+using Adapt
+using Distances: haversine
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using OffsetArrays
