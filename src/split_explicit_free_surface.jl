@@ -1,11 +1,7 @@
 using Oceananigans.Grids: halo_size, with_halo
 
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitFreeSurface,
-                                                        augmented_kernel_offsets,
-                                                        augmented_kernel_size,
-                                                        FixedTimeStepSize
-
-import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface, SplitExplicitAuxiliaryFields
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: SplitExplicitFreeSurface
+import Oceananigans.Models.HydrostaticFreeSurfaceModels: materialize_free_surface
 
 positive_zipper_boundary(default_field, ::TRG) =
     FieldBoundaryConditions(top = nothing,
