@@ -3,7 +3,7 @@ include("dependencies_for_runtests.jl")
 import Oceananigans.Utils: contiguousrange
 using Oceananigans.Utils: KernelParameters
 
-contiguousrange(::KernelParameters{spec, offset}) = contiguousrange(spec, offset)
+contiguousrange(::KernelParameters{spec, offset}) where {spec, offset} = contiguousrange(spec, offset)
 
 @testset "Unit tests..." begin
     grid = TripolarGrid(size = (4, 5, 1), z = (0, 1), 
