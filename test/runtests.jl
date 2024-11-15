@@ -1,5 +1,10 @@
 include("dependencies_for_runtests.jl")
 
+import Oceananigans.Utils: contiguousrange
+using Oceananigans.Utils: KernelParameters
+
+contiguousrange(::KernelParameters{spec, offset}) where {spec, offset} = contiguousrange(spec, offset)
+
 @testset "Unit tests..." begin
     grid = TripolarGrid(size = (4, 5, 1), z = (0, 1), 
                         first_pole_longitude = 75, 
@@ -40,9 +45,27 @@ include("test_zipper_boundary_conditions.jl")
     # Wrong free surface
     @test_throws ArgumentError HydrostaticFreeSurfaceModel(; grid)
 
-    free_surface = SplitExplicitFreeSurface(grid; substeps = 10)
+    free_surface = SplitExplicitFreeSurface(grid; substeps = 12)
     model = HydrostaticFreeSurfaceModel(; grid, free_surface)
 
+    # Tests the grid has been extended
+    η = model.free_surface.η
+    P = model.free_surface.kernel_parameters
+
+    range = contiguousrange(P)
+
+    # Should have extended halos in the north
+    Hx, Hy, _ = halo_size(η.grid)
+    Nx, Ny, _ = size(grid)
+
+    @test P isa KernelParameters
+    @test range[1] == 1:Nx
+    @test range[2] == 1:Ny+Hy-1 
+    
+    @test Hx == halo_size(grid, 1)
+    @test Hy != halo_size(grid, 2)
+    @test Hy == length(free_surface.substepping.averaging_weights) + 1
+    
     @test begin
         time_step!(model, 1.0)
         true

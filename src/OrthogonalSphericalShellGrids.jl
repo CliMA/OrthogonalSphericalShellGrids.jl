@@ -30,6 +30,5 @@ include("tripolar_grid.jl")
 include("tripolar_grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
 include("with_halo.jl")
-include("split_explicit_free_surface.jl")
 
 end
