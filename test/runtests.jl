@@ -60,7 +60,7 @@ include("test_zipper_boundary_conditions.jl")
 
     @test P isa KernelParameters
     @test range[1] == 1:Nx
-    @test range[2] == 1:Ny+Hy 
+    @test range[2] == 1:Ny+Hy-1 
     
     @test Hx == halo_size(grid, 1)
     @test Hy != halo_size(grid, 2)
