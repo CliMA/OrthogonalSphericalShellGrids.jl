@@ -43,4 +43,13 @@ using OrthogonalSphericalShellGrids: Zipper
     north_boundary_u_right = view(u.data, Nx+1, Ny+1:Ny+Hy, 1)
     @test all(north_boundary_u_left  .== 1)
     @test all(north_boundary_u_right .== 1)
+
+    bottom(x, y) = rand()
+
+    grid = TripolarGrid(size = (10, 10, 1))
+    grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bottom))
+
+    bottom_height = grid.immersed_boundary.bottom_height
+
+    @test interior(bottom_height, :, 10, 1) == interior(bottom_height, 10:-1:1, 10, 1)
 end

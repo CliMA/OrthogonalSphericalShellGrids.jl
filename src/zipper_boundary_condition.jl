@@ -46,6 +46,7 @@ c₂ == c₃
 ```
 
 This is not the case for the v-velocity (or any field on the j-faces) where the last grid point is not repeated.
+Because of this redundancy, we ensure consistency by substituting the redundant part of fields Centered in x, in the last row.
 """
 ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper(), sign)
 
@@ -96,6 +97,9 @@ end
         end
     end
 
+    # We substitute the redundant part of the last row to ensure consistency
+    @inbounds c[i, Ny, k] = ifelse(i > Nx ÷ 2, c[i′, Ny, k], c[i, Ny, k])
+
     return nothing
 end
 
@@ -125,6 +129,9 @@ end
             c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
         end
     end
+
+    # We substitute the redundant part of the last row to ensure consistency
+    @inbounds c[i, Ny, k] = ifelse(i > Nx ÷ 2, c[i′, Ny, k], c[i, Ny, k])
 
     return nothing
 end
