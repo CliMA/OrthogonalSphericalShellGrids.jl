@@ -51,5 +51,5 @@ using OrthogonalSphericalShellGrids: Zipper
 
     bottom_height = grid.immersed_boundary.bottom_height
 
-    @test interior(bottom_height, :, 10, 1) == interior(bottom, 10:-1:1, 10, 1)
+    @test interior(bottom_height, :, 10, 1) == interior(bottom_height, 10:-1:1, 10, 1)
 end
