@@ -44,7 +44,6 @@ using OrthogonalSphericalShellGrids: Zipper
     @test all(north_boundary_u_left  .== 1)
     @test all(north_boundary_u_right .== 1)
 
-
     bottom(x, y) = rand()
 
     grid = TripolarGrid(size = (10, 10, 1))
