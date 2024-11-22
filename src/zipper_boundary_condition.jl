@@ -46,7 +46,7 @@ c₂ == c₃
 ```
 
 This is not the case for the v-velocity (or any field on the j-faces) where the last grid point is not repeated.
-Since the last grid point is repeated for Centered fields in x, we ensure consistency by substituting the redundant part of the last row.
+Because of this redundancy, we ensure consistency by substituting the redundant part of fields Centered in x, in the last row.
 """
 ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper(), sign)
 
