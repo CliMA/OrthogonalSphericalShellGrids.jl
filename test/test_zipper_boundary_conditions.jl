@@ -67,5 +67,7 @@ using OrthogonalSphericalShellGrids: Zipper
     # north pole that is exactly at Nx+1
     left_side  = interior(u, 2:5, 10, 1)
     right_side = interior(u, 7:10, 10, 1)
+
+    # Remember the sign is opposite between different sides!
     @test left_side == - reverse(right_side)
 end
