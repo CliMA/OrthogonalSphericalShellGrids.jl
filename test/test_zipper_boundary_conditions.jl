@@ -52,4 +52,20 @@ using OrthogonalSphericalShellGrids: Zipper
     bottom_height = grid.immersed_boundary.bottom_height
 
     @test interior(bottom_height, :, 10, 1) == interior(bottom_height, 10:-1:1, 10, 1)
+
+    c = CenterField(grid)
+    u = XFaceField(grid)
+
+    set!(c, (x, y, z) -> x)
+    set!(u, (x, y, z) -> x)
+
+    fill_halo_regions!(c)
+    fill_halo_regions!(u)
+
+    @test interior(c, :, 10, 1) ==   interior(c, 10:-1:1, 10, 1)
+    # For x face fields the first element is unique and we remove the 
+    # north pole that is exactly at Nx+1
+    left_side  = interior(u, 2:5, 10, 1)
+    right_side = interior(u, 7:10, 10, 1)
+    @test left_side == - reverse(right_side)
 end
