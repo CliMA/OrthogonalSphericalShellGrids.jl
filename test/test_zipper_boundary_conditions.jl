@@ -68,6 +68,6 @@ using OrthogonalSphericalShellGrids: Zipper
     left_side  = interior(u, 2:5, 10, 1)
     right_side = interior(u, 7:10, 10, 1)
 
-    # Remember the sign is opposite between different sides!
+    # The sign of velocities is opposite between different sides at the north boundary
     @test left_side == - reverse(right_side)
 end
