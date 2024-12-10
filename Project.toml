@@ -1,7 +1,7 @@
 name = "OrthogonalSphericalShellGrids"
 uuid = "c2be9673-fb75-4747-82dc-aa2bb9f4aed0"
 authors = ["Climate Modeling Alliance and contributors"]
-version = "0.1.10"
+version = "0.2.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
@@ -17,7 +17,7 @@ Adapt = "4"
 Distances = "0.10"
 KernelAbstractions = "0.9"
 MPI = "0.20"
-Oceananigans = "0.94.1 - 0.99"
+Oceananigans = "0.95.0 - 0.99"
 OffsetArrays = "1"
 Statistics = "1"
 julia = "1"
