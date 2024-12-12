@@ -272,8 +272,8 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     latitude_longitude_grid = LatitudeLongitudeGrid(; size,
                                                       latitude,
                                                       longitude,
-                                                      z = z_faces,
                                                       halo,
+                                                      z = (0, 1), # z does not really matter here
                                                       radius)
 
     # Continue the metrics to the south with the LatitudeLongitudeGrid
