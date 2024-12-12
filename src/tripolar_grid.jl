@@ -133,6 +133,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     # return λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC
     # Helper grid to fill halo 
     grid = RectilinearGrid(; size = (Nx, Ny), halo = (Hλ, Hφ), topology = (Periodic, RightConnected, Flat), x = (0, 1), y = (0, 1))
+    z_faces = cpu_face_constructor_z(grid)
 
     # Boundary conditions to fill halos of the coordinate and metric terms
     # We need to define them manually because of the convention in the 
@@ -271,7 +272,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     latitude_longitude_grid = LatitudeLongitudeGrid(; size,
                                                       latitude,
                                                       longitude,
-                                                      z,
+                                                      z = z_faces,
                                                       halo,
                                                       radius)
 
