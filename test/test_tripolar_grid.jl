@@ -3,6 +3,7 @@ include("dependencies_for_runtests.jl")
 using Statistics: dot, norm
 using Oceananigans.Utils: getregion
 using Oceananigans.ImmersedBoundaries: immersed_cell
+using Oceananigans.MultiRegion: ConformalCubedSphereGrid
 
 @kernel function compute_nonorthogonality_angle!(angle, grid, xF, yF, zF)
     i, j = @index(Global, NTuple)
