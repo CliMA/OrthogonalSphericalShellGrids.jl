@@ -31,7 +31,7 @@ grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (60, 30, 1),
 # ## Retrieving the nodes
 #
 # The lines retrieve Cartesian coordinates for two types of grid nodes: `Face`--`Face` nodes 
-# and `Center`--`Center`` nodes. This is done using the `get_cartesian_nodes_and_vertices` method,
+# and `Center`--`Center` nodes. This is done using the `get_cartesian_nodes_and_vertices` method,
 # which converts the grid's spherical coordinates into Cartesian coordinates for easier manipulation
 # and visualization. The coordinates are stored in variables `xF`, `yF`, `zF` for Face-Face nodes,
 # and `xC`, `yC`, `zC` for Center-Center nodes.
@@ -83,5 +83,5 @@ nothing #hide
 # convergence singularity at the actual South Pole.
 #
 # This tripolar configuration is typically used in ocean modeling so that the gridline convergence
-# singularity in the Arctic ocean is moved away and into the land mases of Russia and Canada; the South pole
+# singularity in the Arctic ocean is moved away and into the land masses of Russia and Canada; the South pole
 # singularity is already within the land mass of Antarctica so things are all good there!
