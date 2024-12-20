@@ -36,8 +36,8 @@ coordinates are given by:
 
 ```math
     \\begin{align*}
-    x & = a \\sinh ψ \\cosd λ \\\\
-    y & = a \\sinh ψ \\sind λ
+    x & = a \\sinh ψ \\mathrm{cosd} λ \\\\
+    y & = a \\sinh ψ \\mathrm{sind} λ
     \\end{align*}
 ```
 
