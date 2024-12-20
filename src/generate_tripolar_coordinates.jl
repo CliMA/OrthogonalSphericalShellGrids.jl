@@ -1,6 +1,6 @@
 """
-    _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
-                                   λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
+    _compute_tripolar_coordinates!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC,
+                                   λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ,
                                    first_pole_longitude,
                                    focal_distance, Nλ)
 
@@ -72,16 +72,16 @@ for which it is possible to retrieve the longitude and latitude by:
         # This makes sense, what is the longitude of the north pole? Could be anything!
         # so we choose a value that is continuous with the surrounding points.
         on_the_north_pole = (x == 0) & (y == 0)
-        north_pole_value  = ifelse(i == 1, -90, 90) 
+        north_pole_value  = ifelse(i == 1, -90, 90)
 
         λ2D[i, j] = ifelse(on_the_north_pole, north_pole_value, - 180 / π * atan(y / x))
-        φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude will be in the range [-90, 90]
+        φ2D[i, j] = 90 - 360 / π * atan(sqrt(y^2 + x^2)) # The latitude is in the range [-90, 90]
 
-        # Shift longitude to the range [-180, 180], the 
-        # the north singularities will be located at -90 and 90
-        λ2D[i, j] += ifelse(i ≤ Nλ÷2, -90, 90) 
+        # Shift longitude to the range [-180, 180],
+        # the north singularities are located at -90 and 90.
+        λ2D[i, j] += ifelse(i ≤ Nλ÷2, -90, 90)
 
-        # Make sure the singularities are at longitude we want them to be at.
+        # Make sure the singularities are at longitudes we want them to be at.
         # (`first_pole_longitude` and `first_pole_longitude` + 180)
         λ2D[i, j] += first_pole_longitude + 90
         λ2D[i, j]  = convert_to_0_360(λ2D[i, j])
