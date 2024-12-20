@@ -1,4 +1,8 @@
-""" a structure to represent a tripolar grid on a spherical shell """
+"""
+    struct Tripolar{N, F, S}
+
+A structure to represent a tripolar grid on a spherical shell.
+"""
 struct Tripolar{N, F, S}
     north_poles_latitude :: N
     first_pole_longitude :: F
@@ -22,12 +26,9 @@ const TripolarGrid{FT, TX, TY, TZ, CZ, A, Arch} = OrthogonalSphericalShellGrid{F
                  north_poles_latitude = 55,
                  first_pole_longitude = 70)
 
-Construct a tripolar grid on a spherical shell.
-
-!!! warning "Longitude coordinate must have even number of cells"
-    `size` is a 3-tuple of the grid size in longitude, latitude, and vertical directions.
-    Due to requirements of the folding at the north edge of the domain, the longitude size
-    of the grid (i.e., the first component of `size`) _must_ be an even number!
+Return an `OrthogonalSphericalShellGrid` tripolar grid on the sphere. The
+tripolar grid replaces the North pole singularity with two other singularities
+at `north_poles_latitude` that is _less_ than 90ᵒ.
 
 Positional Arguments
 ====================
@@ -47,30 +48,31 @@ Keyword Arguments
                           The second singularity is located at `first_pole_longitude + 180ᵒ`.
 - `north_poles_latitude`: The latitude of the "north" singularities.
 
-Return
-======
+!!! warning "Longitude coordinate must have even number of cells"
+    `size` is a 3-tuple of the grid size in longitude, latitude, and vertical directions.
+    Due to requirements of the folding at the north edge of the domain, the longitude size
+    of the grid (i.e., the first component of `size`) _must_ be an even number!
 
-An `OrthogonalSphericalShellGrid` object representing a tripolar grid on the sphere. 
-The north singularities are located at
-
-`i = 1, j = Nφ` and `i = Nλ ÷ 2 + 1, j = Nλ` 
+!!! info "North pole singularities"
+    The north singularities are located at: `i = 1`, `j = Nφ` and `i = Nλ ÷ 2 + 1`, `j = Nφ`.
 """
 function TripolarGrid(arch = CPU(), FT::DataType = Float64; 
                       size, 
-                      southernmost_latitude = -80, # The southermost `Center` latitude of the grid
+                      southernmost_latitude = -80,
                       halo = (4, 4, 4), 
                       radius = R_Earth, 
                       z = (0, 1),
                       north_poles_latitude = 55,
-                      first_pole_longitude = 70)  # The second pole is at `λ = first_pole_longitude + 180ᵒ`
+                      first_pole_longitude = 70)  # second pole is at longitude `first_pole_longitude + 180ᵒ`
 
-    # TODO: change a couple of allocations here and there to be able 
+    # TODO: Change a couple of allocations here and there to be able 
     # to construct the grid on the GPU. This is not a huge problem as
-    # grid generation is quite fast, but it might become for sub-kilometer grids
+    # grid generation is quite fast, but it might become slow for
+    # sub-kilometer resolution grids.
 
     latitude  = (southernmost_latitude, 90)
     longitude = (-180, 180) 
-        
+
     focal_distance = tand((90 - north_poles_latitude) / 2)
 
     Nλ, Nφ, Nz = size
@@ -80,7 +82,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
         throw(ArgumentError("The number of cells in the longitude dimension should be even!"))
     end
 
-    # the λ and Z coordinate is the same as for the other grids,
+    # the λ and z coordinate is the same as for the other grids,
     # but for the φ coordinate we need to remove one point at the north
     # because the the north pole is a `Center`point, not on `Face` point...
     topology  = (Periodic, RightConnected, Bounded) 
@@ -108,31 +110,34 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     φCC = zeros(Nλ, Nφ)
 
     loop! = _compute_tripolar_coordinates!(device(CPU()), (16, 16), (Nλ, Nφ))
-    
+
     loop!(λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC, 
           λᶠᵃᵃ, λᶜᵃᵃ, φᵃᶠᵃ, φᵃᶜᵃ, 
           first_pole_longitude,
           focal_distance, Nλ)
 
-    # We need to circshift eveything to have the first pole at the beginning of the 
+    # We need to circshift everything to have the first pole at the beginning of the
     # grid and the second pole in the middle
     shift = Nλ÷4
 
     λFF = circshift(λFF, (shift, 0))
-    φFF = circshift(φFF, (shift, 0)) 
-    λFC = circshift(λFC, (shift, 0)) 
-    φFC = circshift(φFC, (shift, 0)) 
-    λCF = circshift(λCF, (shift, 0)) 
-    φCF = circshift(φCF, (shift, 0)) 
-    λCC = circshift(λCC, (shift, 0)) 
+    φFF = circshift(φFF, (shift, 0))
+    λFC = circshift(λFC, (shift, 0))
+    φFC = circshift(φFC, (shift, 0))
+    λCF = circshift(λCF, (shift, 0))
+    φCF = circshift(φCF, (shift, 0))
+    λCC = circshift(λCC, (shift, 0))
     φCC = circshift(φCC, (shift, 0))
 
     Nx = Nλ
     Ny = Nφ
-            
+
     # return λFF, φFF, λFC, φFC, λCF, φCF, λCC, φCC
     # Helper grid to fill halo 
-    grid = RectilinearGrid(; size = (Nx, Ny), halo = (Hλ, Hφ), topology = (Periodic, RightConnected, Flat), x = (0, 1), y = (0, 1))
+    grid = RectilinearGrid(; size = (Nx, Ny),
+                             halo = (Hλ, Hφ),
+                             x = (0, 1), y = (0, 1),
+                             topology = (Periodic, RightConnected, Flat))
     z_faces = cpu_face_constructor_z(grid)
 
     # Boundary conditions to fill halos of the coordinate and metric terms
@@ -151,7 +156,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
 
     lFC = Field((Face, Center, Center), grid; boundary_conditions = default_boundary_conditions)
     pFC = Field((Face, Center, Center), grid; boundary_conditions = default_boundary_conditions)
-    
+
     lCF = Field((Center, Face, Center), grid; boundary_conditions = default_boundary_conditions)
     pCF = Field((Center, Face, Center), grid; boundary_conditions = default_boundary_conditions)
 
@@ -174,7 +179,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     fill_halo_regions!(lCF)
     fill_halo_regions!(lFC)
     fill_halo_regions!(lCC)
-    
+
     fill_halo_regions!(pFF)
     fill_halo_regions!(pCF)
     fill_halo_regions!(pFC)
@@ -220,7 +225,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
           λᶠᶜᵃ, λᶜᶜᵃ, λᶜᶠᵃ, λᶠᶠᵃ,
           φᶠᶜᵃ, φᶜᶜᵃ, φᶜᶠᵃ, φᶠᶠᵃ,
           radius)
-          
+
     # Metrics fields to fill halos
     FF = Field((Face, Face, Center),     grid; boundary_conditions = default_boundary_conditions)
     FC = Field((Face, Center, Center),   grid; boundary_conditions = default_boundary_conditions)
@@ -283,7 +288,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     continue_south!(Δxᶠᶜᵃ, latitude_longitude_grid.Δxᶠᶜᵃ)
     continue_south!(Δxᶜᶠᵃ, latitude_longitude_grid.Δxᶜᶠᵃ)
     continue_south!(Δxᶜᶜᵃ, latitude_longitude_grid.Δxᶜᶜᵃ)
-    
+
     continue_south!(Δyᶠᶠᵃ, latitude_longitude_grid.Δyᶠᶜᵃ)
     continue_south!(Δyᶠᶜᵃ, latitude_longitude_grid.Δyᶠᶜᵃ)
     continue_south!(Δyᶜᶠᵃ, latitude_longitude_grid.Δyᶜᶠᵃ)
@@ -323,7 +328,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                                                                            on_architecture(arch, map(FT, Azᶠᶠᵃ)),
                                                                            convert(FT, radius),
                                                                            Tripolar(north_poles_latitude, first_pole_longitude, southernmost_latitude))
-             
+
     return grid
 end
 
@@ -331,8 +336,9 @@ end
 function continue_south!(new_metric, lat_lon_metric::Number)
     Hx, Hy = new_metric.offsets
     Nx, Ny = size(new_metric)
-    for i in Hx+1:Nx+Hx, j in Hy+1:1
-        new_metric[i, j] = lat_lon_metric
+
+    for j in Hy+1:1, i in Hx+1:Nx+Hx
+        @inbounds new_metric[i, j] = lat_lon_metric
     end
 
     return nothing
@@ -342,8 +348,9 @@ end
 function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 1})
     Hx, Hy = new_metric.offsets
     Nx, Ny = size(new_metric)
-    for i in Hx+1:Nx+Hx, j in Hy+1:1
-        new_metric[i, j] = lat_lon_metric[j]
+
+    for j in Hy+1:1, i in Hx+1:Nx+Hx
+        @inbounds new_metric[i, j] = lat_lon_metric[j]
     end
 
     return nothing
@@ -353,8 +360,9 @@ end
 function continue_south!(new_metric, lat_lon_metric::AbstractArray{<:Any, 2})
     Hx, Hy = - new_metric.offsets
     Nx, Ny = size(new_metric)
-    for i in Hx+1:Nx+Hx, j in Hy+1:1
-        new_metric[i, j] = lat_lon_metric[i, j]
+
+    for j in Hy+1:1, i in Hx+1:Nx+Hx
+        @inbounds new_metric[i, j] = lat_lon_metric[i, j]
     end
 
     return nothing
