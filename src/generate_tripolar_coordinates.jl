@@ -21,7 +21,7 @@ The family of ellipses obeys:
 While the family of perpendicular hyperbolae obey:
 
 ```math
-\\frac{x²}{a² \\cosh²(λ)} + \\frac{y²}{a² \\sinh²(λ)} = 1
+\\frac{x²}{a² \\sin²(λ)} - \\frac{y²}{a² \\cos²(λ)} = 1
 ```
 
 Where ``a`` is the `focal_distance` to the center, ``λ`` is the longitudinal angle,
