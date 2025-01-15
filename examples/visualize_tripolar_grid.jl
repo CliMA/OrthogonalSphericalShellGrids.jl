@@ -31,7 +31,7 @@ grid = OrthogonalSphericalShellGrids.TripolarGrid(size = (60, 30, 1),
 # ## Retrieving the nodes
 #
 # The lines retrieve Cartesian coordinates for two types of grid nodes: `Face`--`Face` nodes 
-# and `Center`--`Center`` nodes. This is done using the `get_cartesian_nodes_and_vertices` method,
+# and `Center`--`Center` nodes. This is done using the `get_cartesian_nodes_and_vertices` method,
 # which converts the grid's spherical coordinates into Cartesian coordinates for easier manipulation
 # and visualization. The coordinates are stored in variables `xF`, `yF`, `zF` for Face-Face nodes,
 # and `xC`, `yC`, `zC` for Center-Center nodes.
@@ -75,13 +75,13 @@ nothing #hide
 
 # ![](tripolar_grid_nodes.png)
 
-# Above there are two views of the grid: northern hemisphere on the left, southern
+# Above there are two views of the grid: Northern hemisphere on the left, Southern
 # hemisphere on the right. The actual North and South poles are the red dots.
-# On the left we see how the North hemisphere has does not have a gridline convergence
-# singularity at the actual North Pole but the singularity has moved to the two fictitious
-# poles shifted at latitude 60; on the right we see that the Southern hemisphere has its pole
-# at the usual South Pole.
+# On the left we see how the Northern hemisphere does not have a gridline convergence
+# singularity at the actual North Pole but instead the singularity has moved to the two fictitious
+# poles shifted at latitude 60; on the right the Southern hemisphere still has a gridline
+# convergence singularity at the actual South Pole.
 #
-# This tripolar configuration is typically used in ocean modeling so that the pole singularity
-# in the Arctic ocean is moved away into the land mases of Russia and Canada; the South pole
-# singularity is already within the land mass of Antarctica so things are all good down there!
+# This tripolar configuration is typically used in ocean modeling so that the gridline convergence
+# singularity in the Arctic ocean is moved away and into the land masses of Russia and Canada; the South pole
+# singularity is already within the land mass of Antarctica so things are all good there!

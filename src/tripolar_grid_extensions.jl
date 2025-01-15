@@ -78,10 +78,3 @@ function Field((LX, LY, LZ)::Tuple, grid::TRG, data, old_bcs, indices::Tuple, op
 
     return Field{LX, LY, LZ}(grid, data, new_bcs, indices, op, status, buffers)
 end
-
-# Not sure this is needed, but it is here for now
-function tupled_fill_halo_regions!(full_fields, grid::TRG, args...; kwargs...)
-    for field in full_fields
-        fill_halo_regions!(field, args...; kwargs...)
-    end
-end

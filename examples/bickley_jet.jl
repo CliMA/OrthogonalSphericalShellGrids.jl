@@ -45,7 +45,7 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
 
 @info "Building a model..."; start=time_ns()
 
-tracer_advection   = Oceananigans.Advection.TracerAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
+tracer_advection   = Oceananigans.Advection.FluxFormAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
 momentum_advection = WENOVectorInvariant(vorticity_order = 5)
 
 model = HydrostaticFreeSurfaceModel(; grid, free_surface,

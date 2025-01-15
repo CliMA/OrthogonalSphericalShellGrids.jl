@@ -9,8 +9,8 @@ using Oceananigans.Grids: topology
 
 import Oceananigans.DistributedComputations: reconstruct_global_grid
 
-const DistributedTripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} =
-    OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, <:Distributed}
+const DistributedTripolarGrid{FT, TX, TY, TZ, CZ, A, Arch} =
+    OrthogonalSphericalShellGrid{FT, TX, TY, TZ, CZ, A, <:Tripolar, <:Distributed}
 
 const DTRG = Union{DistributedTripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:DistributedTripolarGrid}}
 
@@ -75,10 +75,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     LY = rank == 0 ? RightConnected : FullyConnected
     ny = nlocal[rank+1]
 
-    zᵃᵃᶜ   = global_grid.zᵃᵃᶜ
-    zᵃᵃᶠ   = global_grid.zᵃᵃᶠ
-    Δzᵃᵃᶜ  = global_grid.Δzᵃᵃᶜ
-    Δzᵃᵃᶠ  = global_grid.Δzᵃᵃᶠ
+    z = global_grid.z
     radius = global_grid.radius
 
     grid = OrthogonalSphericalShellGrid{Periodic, LY, Bounded}(arch,
@@ -93,8 +90,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
                                                                on_architecture(arch, φᶠᶜᵃ),
                                                                on_architecture(arch, φᶜᶠᵃ),
                                                                on_architecture(arch, φᶠᶠᵃ),
-                                                               on_architecture(arch, zᵃᵃᶜ),
-                                                               on_architecture(arch, zᵃᵃᶠ),
+                                                               on_architecture(arch, z),
                                                                on_architecture(arch, Δxᶜᶜᵃ),
                                                                on_architecture(arch, Δxᶠᶜᵃ),
                                                                on_architecture(arch, Δxᶜᶠᵃ),
@@ -103,8 +99,6 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
                                                                on_architecture(arch, Δyᶜᶠᵃ),
                                                                on_architecture(arch, Δyᶠᶜᵃ),
                                                                on_architecture(arch, Δyᶠᶠᵃ),
-                                                               on_architecture(arch, Δzᵃᵃᶜ),
-                                                               on_architecture(arch, Δzᵃᵃᶠ),
                                                                on_architecture(arch, Azᶜᶜᵃ),
                                                                on_architecture(arch, Azᶠᶜᵃ),
                                                                on_architecture(arch, Azᶜᶠᵃ),
@@ -220,13 +214,13 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
 
     north_poles_latitude = grid.conformal_mapping.north_poles_latitude
     first_pole_longitude = grid.conformal_mapping.first_pole_longitude
-    southermost_latitude = grid.conformal_mapping.southermost_latitude
+    southernmost_latitude = grid.conformal_mapping.southernmost_latitude
 
     return TripolarGrid(child_arch, FT;
         halo,
         size,
         north_poles_latitude,
         first_pole_longitude,
-        southermost_latitude,
+        southernmost_latitude,
         z)
 end
