@@ -2,14 +2,10 @@ using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids: TRG
 using Oceananigans
 using Oceananigans.Operators: Δx, Δy
-using Oceananigans.Grids: λnode, φnode, znode
-using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField, interpolator
+using Oceananigans.Grids: λnode, φnode, znode, halo_size
+using Oceananigans.Fields: fractional_index, fractional_z_index, AbstractField, interpolator, location, instantiate
 
-import Oceananigans.Fields: interpolate!, λnodes, φnodes
-
-# TODO: Move to Oceananigans
-@inline λnodes(ibg::ImmersedBoundaryGrid, args...; kwargs...) = λnodes(ibg.underlying_grid, args...; kwargs...)
-@inline φnodes(ibg::ImmersedBoundaryGrid, args...; kwargs...) = φnodes(ibg.underlying_grid, args...; kwargs...)
+import Oceananigans.Fields: interpolate!
 
 TRGField = Field{<:Any, <:Any, <:Any, <:Any, <:TRG}
 
@@ -32,7 +28,7 @@ struct InterpolationWeights{LXT, LYT, LXF, LYF, I, J, W}
 end
 
 @inline from_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = (LXF, LYF)
-@inline to_location(::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = (LXT, LYT)
+@inline to_location(::InterpolationWeights{LXT, LYT, LXF, LYF})   where {LXT, LYT, LXF, LYF} = (LXT, LYT)
 
 Adapt.adapt_structure(to, iw::InterpolationWeights{LXT, LYT, LXF, LYF}) where {LXT, LYT, LXF, LYF} = 
     InterpolationWeights{LXT, LYT, LXF, LYF}(Adapt.adapt(to, iw.i_indices),
@@ -135,11 +131,19 @@ function interpolate!(to_field::Field, from_field::TRGField, interpolation_weigh
     return to_field
 end
 
+maybe_fractional_z_index(k, to_grid, ::Nothing, from_loc, from_grid) = 1
+
+function maybe_fractional_z_index(k, to_grid, to_loc, from_loc, from_grid)
+    z = znode(k, to_grid, to_loc[3])  
+    return fractional_z_index(z, from_loc, from_grid)
+end
+
 @kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weights)
     i, j, k = @index(Global, NTuple)
 
-    z  = znode(k, to_grid, to_loc[3])
-    kk = fractional_z_index(z, from_loc, from_grid)
+    
+    
+    kk = maybe_fractional_z_index(k, to_grid, to_loc[3], from_loc, from_grid)
     
     k⁻, k⁺, ζ = interpolator(kk)
 
@@ -214,6 +218,7 @@ end
     φ = φnodes(grid, loc...; with_halos = true)
 
     Nx, Ny, _ = size(grid)
+    Hy = halo_size(grid, 2)
 
     # We search for an initial valid option
     dist = Inf
@@ -227,21 +232,21 @@ end
             j⁻ = floor(Int, jⁿ)
             j⁺ = j⁻ + 1
 
-            if j⁻ <= grid.Ny
+            if -Hy+2 <= j⁻ <= grid.Ny
                 dist, i₀, j₀ = check_and_update(dist, i₀, j₀, i, j⁻, λ₀, φ₀, λ[i, j⁻], φ[i, j⁻])               
             end
 
-            if j⁺ <= grid.Ny
+            if -Hy+2 <= j⁺ <= grid.Ny
                 dist, i₀, j₀ = check_and_update(dist, i₀, j₀, i, j⁺, λ₀, φ₀, λ[i, j⁺], φ[i, j⁺])
             end
         end 
     end
     
     # Now find the closest neighbors given i₀ and j₀
-    i₁ = ifelse(i₀ == 0, grid.Nx, i₀ - 1)
-    j₁ = ifelse(j₀ == 0, j₀, j₀ - 1)
-    i₂ = ifelse(i₀ == size(λ, 1), 1,  i₀ + 1)
-    j₂ = ifelse(j₀ == size(λ, 2), j₀, j₀ + 1)
+    i₁ = ifelse(i₀ <= 0, grid.Nx - i₀, i₀ - 1)
+    j₁ = ifelse(j₀ <= 0, j₀, j₀ - 1)
+    i₂ = ifelse(i₀ >= size(λ, 1), 1,  i₀ + 1)
+    j₂ = ifelse(j₀ >= size(λ, 2), j₀, j₀ + 1)
 
     @inbounds begin
         λ₀₀ = massage_longitude(λ₀, λ[i₀, j₀])
