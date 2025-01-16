@@ -140,8 +140,6 @@ end
 
 @kernel function _nearest_neigbor_interpolate!(to_field, to_loc, to_grid, from_field, from_loc, from_grid, interpolation_weights)
     i, j, k = @index(Global, NTuple)
-
-    
     
     kk = maybe_fractional_z_index(k, to_grid, to_loc[3], from_loc, from_grid)
     
@@ -186,7 +184,7 @@ end
     end
 
     ∑fw = f₀₀ * w₀₀ + f₀₁ * w₀₁ + f₁₀ * w₁₀ + f₀₂ * w₀₂ + f₂₀ * w₂₀ + f₁₁ * w₁₁ + f₂₂ * w₂₂ + f₁₂ * w₁₂ + f₂₁ * w₂₁
-    ∑w = w₀₀ + w₀₁ + w₁₀ + w₀₂ + w₂₀ + w₁₁ + w₂₂ + w₁₂ + w₂₁
+    ∑w  = w₀₀ + w₀₁ + w₁₀ + w₀₂ + w₂₀ + w₁₁ + w₂₂ + w₁₂ + w₂₁
 
     return ∑fw / ∑w
 end
