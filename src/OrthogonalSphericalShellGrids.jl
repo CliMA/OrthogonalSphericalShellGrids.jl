@@ -30,5 +30,6 @@ include("tripolar_grid.jl")
 include("tripolar_grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
 include("with_halo.jl")
+include("nearest_neighbor_interpolation.jl")
 
 end
