@@ -3,17 +3,29 @@ module OrthogonalSphericalShellGridsGeoMakieExt
 using GeoMakie
 using Oceananigans
 using Oceananigans.Utils
-using Oceananigans.Grids: λnode, φnode, on_architecture
+using Oceananigans.Grids: λnode, φnode, on_architecture, AbstractGrid
+using GeoMakie: GeometryBasics
 
 using KernelAbstractions: @kernel, @index
 
-function globe!(fig, faces; color=:black)
-    ax = fig.current_axis
+function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(field, 3), colorrange=nothing)
+    fig = Figure(size=(800, 800));
+
+    ax = LScene(fig[1,1], show_axis=false);
     transf = GeoMakie.Geodesy.ECEFfromLLA(GeoMakie.Geodesy.WGS84())
 
-    # add nan after every face to avoid lines linking grid cells
-    f = lines!(ax, vec(faces); color)
-    f.transformation.transform_func[] = transf
+    grid  = field.grid
+    data  = on_architecture(Oceananigans.CPU(), vec(interior(field, :, :, level))[1:end])
+    faces = list_cell_vertices(grid; add_nans=false)
+
+    polygons = [GeometryBasics.Polygon(faces[:, j]) for j in 1:length(data)]
+    p = poly!(ax, polygons, color=data; colormap, colorrange)
+    p.transformation.transform_func[] = transf
+
+    if add_coastlines
+        c = lines!(GeoMakie.coastlines(50); color=:white, linewidth=1, alpha=0.7)
+        c.transformation.transform_func[] = transf
+    end
 
     cc = cameracontrols(ax.scene)
     cc.settings.mouse_translationspeed[] = 0.0
@@ -23,7 +35,7 @@ function globe!(fig, faces; color=:black)
     return fig
 end
 
-function globe(grid; add_coastlines=true, color=:black)
+function globe(grid::AbstractGrid; add_coastlines=true, color=:black)
     fig = Figure(size=(800, 800));
 
     ax = LScene(fig[1,1], show_axis=false);
@@ -63,11 +75,11 @@ function list_cell_vertices(grid; add_nans=true)
 
     cpu_grid = on_architecture(Oceananigans.CPU(), grid)
 
-    sw  = fill(Point2{FT}(0, 0),     1, Nx*Ny+1)
-    nw  = fill(Point2{FT}(0, 0),     1, Nx*Ny+1)
-    ne  = fill(Point2{FT}(0, 0),     1, Nx*Ny+1)
-    se  = fill(Point2{FT}(0, 0),     1, Nx*Ny+1)
-    nan = fill(Point2{FT}(NaN, NaN), 1, Nx*Ny+1)
+    sw  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
+    nw  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
+    ne  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
+    se  = fill(Point2{FT}(0, 0),     1, Nx*Ny)
+    nan = fill(Point2{FT}(NaN, NaN), 1, Nx*Ny)
 
     launch!(Oceananigans.CPU(), cpu_grid, :xy, _get_vertices!, sw, nw, ne, se, grid)
     
