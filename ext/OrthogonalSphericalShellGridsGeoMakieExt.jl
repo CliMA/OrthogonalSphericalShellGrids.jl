@@ -8,6 +8,35 @@ using GeoMakie: GeometryBasics
 
 using KernelAbstractions: @kernel, @index
 
+function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, colorrange=nothing)
+    fig = Figure(size=(800, 800));
+
+    ax = LScene(fig[1,1], show_axis=false);
+    transf = GeoMakie.Geodesy.ECEFfromLLA(GeoMakie.Geodesy.WGS84())
+
+    faces = list_cell_vertices(grid; add_nans=false)
+
+    polygons = [GeometryBasics.Polygon(faces[:, j]) for j in 1:length(data[])]
+    if isnothing(colorrange)
+        p = poly!(ax, polygons, color=data; colormap)
+    else
+        p = poly!(ax, polygons, color=data; colormap, colorrange)
+    end
+    p.transformation.transform_func[] = transf
+
+    if add_coastlines
+        c = lines!(GeoMakie.coastlines(50); color=:white, linewidth=1, alpha=0.7)
+        c.transformation.transform_func[] = transf
+    end
+
+    cc = cameracontrols(ax.scene)
+    cc.settings.mouse_translationspeed[] = 0.0
+    cc.settings.zoom_shift_lookat[] = false
+    Makie.update_cam!(ax.scene, cc)
+    
+    return fig
+end
+
 function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(field, 3), colorrange=nothing)
     fig = Figure(size=(800, 800));
 
@@ -19,7 +48,11 @@ function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(
     faces = list_cell_vertices(grid; add_nans=false)
 
     polygons = [GeometryBasics.Polygon(faces[:, j]) for j in 1:length(data)]
-    p = poly!(ax, polygons, color=data; colormap, colorrange)
+    if isnothing(colorrange)
+        p = poly!(ax, polygons, color=data; colormap)
+    else
+        p = poly!(ax, polygons, color=data; colormap=map, colorrange=range)
+    end
     p.transformation.transform_func[] = transf
 
     if add_coastlines
