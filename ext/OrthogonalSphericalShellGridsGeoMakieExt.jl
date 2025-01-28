@@ -32,9 +32,12 @@ function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, c
     cc = cameracontrols(ax.scene)
     cc.settings.mouse_translationspeed[] = 0.0
     cc.settings.zoom_shift_lookat[] = false
+    cc.eyeposition[] = Float32[3.0, 3.0, 3.0]
     Makie.update_cam!(ax.scene, cc)
     
-    return fig
+    rotate_cam!(ax.scene, (- π/3.5, 0, 0))
+    
+    return fig, ax
 end
 
 function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(field, 3), colorrange=nothing)
