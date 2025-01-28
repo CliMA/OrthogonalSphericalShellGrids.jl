@@ -3,7 +3,9 @@ using OrthogonalSphericalShellGrids
 using OrthogonalSphericalShellGrids.Oceananigans
 using OrthogonalSphericalShellGrids.Oceananigans.Units
 using OrthogonalSphericalShellGrids.Oceananigans.Utils: get_cartesian_nodes_and_vertices
-using CairoMakie
+using OrthogonalSphericalShellGrids.Oceananigans.TurbulenceClosures.TKEBasedVerticalDiffusivities: CATKEVerticalDiffusivity
+
+# using CairoMakie
 using Printf
 
 Nx = 180
@@ -48,11 +50,14 @@ free_surface = SplitExplicitFreeSurface(grid; substeps = 30)
 tracer_advection   = Oceananigans.Advection.FluxFormAdvection(WENO(; order = 5), WENO(; order = 5), Centered())
 momentum_advection = WENOVectorInvariant(vorticity_order = 5)
 
+closure = CATKEVerticalDiffusivity()
+
 model = HydrostaticFreeSurfaceModel(; grid, free_surface,
                                       momentum_advection,
                                       tracer_advection,
-                                      buoyancy = nothing,
-                                      tracers = :c)
+                                      closure,
+                                      buoyancy = BuoyancyTracer(),
+                                      tracers = (:b, :c, :e))
 
 ζ = Oceananigans.Models.HydrostaticFreeSurfaceModels.VerticalVorticityField(model)    
 
@@ -88,39 +93,39 @@ simulation.callbacks[:wizard]   = Callback(wizard,   IterationInterval(10))
 
 run!(simulation)
 
-# Let's visualize the fields!
-ζ = FieldTimeSeries("tripolar_bickley.jld2", "ζ")
-c = FieldTimeSeries("tripolar_bickley.jld2", "c")
+# # Let's visualize the fields!
+# ζ = FieldTimeSeries("tripolar_bickley.jld2", "ζ")
+# c = FieldTimeSeries("tripolar_bickley.jld2", "c")
 
-Nt = length(ζ.times)
+# Nt = length(ζ.times)
 
-iter = Observable(1)
+# iter = Observable(1)
 
-# Lift the correct time step
-ζi = @lift(interior(ζ[$iter], :, :, 1))
-ci = @lift(interior(c[$iter], :, :, 1))
+# # Lift the correct time step
+# ζi = @lift(interior(ζ[$iter], :, :, 1))
+# ci = @lift(interior(c[$iter], :, :, 1))
 
-# retrieve the Face-Face nodes in a Cartesian coordinate system
-cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Face(), Face(), Center())
-xF, yF, zF = cartesian_nodes
+# # retrieve the Face-Face nodes in a Cartesian coordinate system
+# cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Face(), Face(), Center())
+# xF, yF, zF = cartesian_nodes
 
-# retrieve the Center-Center nodes in a Cartesian coordinate system
-cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Center(), Center(), Center())
-xC, yC, zC = cartesian_nodes
+# # retrieve the Center-Center nodes in a Cartesian coordinate system
+# cartesian_nodes, _ = get_cartesian_nodes_and_vertices(underlying_grid, Center(), Center(), Center())
+# xC, yC, zC = cartesian_nodes
 
-fig = Figure()
+# fig = Figure()
 
-ax = LScene(fig[1, 1]; show_axis = false)
-surface!(ax, xF, yF, zF, color = ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
+# ax = LScene(fig[1, 1]; show_axis = false)
+# surface!(ax, xF, yF, zF, color = ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
 
-ax = LScene(fig[1, 2]; show_axis = false)
-surface!(ax, xC, yC, zC, color = ci, colorrange = (-1, 1), colormap = :magma)
+# ax = LScene(fig[1, 2]; show_axis = false)
+# surface!(ax, xC, yC, zC, color = ci, colorrange = (-1, 1), colormap = :magma)
 
-CairoMakie.record(fig, "spherical_bickley_with_continents.mp4", 1:Nt, framerate = 5) do i
-    @info "printing iteration $i of $Nt"
-    iter[] = i
-end
-nothing
+# CairoMakie.record(fig, "spherical_bickley_with_continents.mp4", 1:Nt, framerate = 5) do i
+#     @info "printing iteration $i of $Nt"
+#     iter[] = i
+# end
+# nothing
 
 # ![](spherical_bickley_with_continents.mp4)
 
@@ -128,31 +133,31 @@ nothing
 # how it looks projected on a plane! 
 # To make sure everything is working as expected let's plot the whole data including halo regions
 
-fig = Figure(size = (1500, 800))
+# fig = Figure(size = (1500, 800))
 
-# Lift the correct time step
-ζi = @lift begin
-    z = ζ[$iter].data[:, :, 1]
-    z[z .== 0] .= NaN
-    z
-end
+# # Lift the correct time step
+# ζi = @lift begin
+#     z = ζ[$iter].data[:, :, 1]
+#     z[z .== 0] .= NaN
+#     z
+# end
 
-ci = @lift begin 
-    t = c[$iter].data[:, :, 1]
-    t[t .== 0] .= NaN
-    t
-end
+# ci = @lift begin 
+#     t = c[$iter].data[:, :, 1]
+#     t[t .== 0] .= NaN
+#     t
+# end
 
-ax = Axis(fig[1, 1])
-heatmap!(ax, ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
+# ax = Axis(fig[1, 1])
+# heatmap!(ax, ζi, colorrange = (-5e-6, 5e-6), colormap = :bwr)
 
-ax = Axis(fig[1, 2])
-heatmap!(ax, ci, colorrange = (-1, 1), colormap = :magma)
+# ax = Axis(fig[1, 2])
+# heatmap!(ax, ci, colorrange = (-1, 1), colormap = :magma)
 
-CairoMakie.record(fig, "spherical_bickley_on_a_plane.mp4", 10:Nt, framerate = 5) do i
-    @info "printing iteration $i of $Nt"
-    iter[] = i
-end
-nothing
+# CairoMakie.record(fig, "spherical_bickley_on_a_plane.mp4", 10:Nt, framerate = 5) do i
+#     @info "printing iteration $i of $Nt"
+#     iter[] = i
+# end
+# nothing
 
 # ![](spherical_bickley_on_a_plane.mp4)
