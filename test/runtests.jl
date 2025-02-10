@@ -75,3 +75,5 @@ include("test_zipper_boundary_conditions.jl")
         true
     end
 end
+
+include("test_distributed_tripolar.jl")

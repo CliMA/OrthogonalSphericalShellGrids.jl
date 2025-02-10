@@ -111,9 +111,7 @@ end
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
     end
 
     return nothing
@@ -126,9 +124,7 @@ end
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
 
     # We substitute the redundant part of the last row to ensure consistency

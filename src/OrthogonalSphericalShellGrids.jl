@@ -13,7 +13,8 @@ using Oceananigans.Grids: R_Earth,
                           halo_size, spherical_area_quadrilateral,
                           lat_lon_to_cartesian, generate_coordinate, topology
 using Oceananigans.Operators
-using Oceananigans.Utils: get_cartesian_nodes_and_vertices
+
+using Oceananigans.Utils: get_cartesian_nodes_and_vertices                       
 
 using Adapt
 using Distances: haversine
@@ -29,6 +30,8 @@ include("generate_tripolar_coordinates.jl")
 include("tripolar_grid.jl")
 include("tripolar_grid_extensions.jl")
 include("distributed_tripolar_grid.jl")
+include("distributed_zipper.jl")
+include("distributed_zipper_north_tags.jl")
 include("with_halo.jl")
 
 end
