@@ -1,5 +1,4 @@
 include("dependencies_for_runtests.jl")
-include("distributed_tests_utils.jl")
 
 import Oceananigans.Utils: contiguousrange
 using Oceananigans.Utils: KernelParameters

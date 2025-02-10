@@ -1,5 +1,6 @@
 include("dependencies_for_runtests.jl")
 include("distributed_tests_utils.jl")
+
 using MPI
 
 tripolar_boundary_conditions = """
