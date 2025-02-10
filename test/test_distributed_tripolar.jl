@@ -97,47 +97,6 @@ run_large_pencil_distributed_grid = """
     run_distributed_tripolar_grid(arch, "distributed_large_pencil_tripolar.jld2")
 """
 
-# The serial version of the TripolarGrid substitutes the second half of the last row of the grid
-# This is not done in the distributed version, so we need to undo this substitution if we want to
-# compare the results. Otherwise very tiny differences caused by finite precision compuations
-# will appear in the last row of the grid.
-import OrthogonalSphericalShellGrids: _fill_north_halo!
-using OrthogonalSphericalShellGrids: ZBC, CCLocation, FCLocation
-
-# # tracers or similar fields
-@inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::CCLocation, args...) = my_fold_north_center_center!(i, k, grid, bc.condition, c)
-@inline _fill_north_halo!(i, k, grid, u, bc::ZBC, ::FCLocation, args...) = my_fold_north_face_center!(i, k, grid, bc.condition, u)
-
-@inline function my_fold_north_face_center!(i, k, grid, sign, c)
-    Nx, Ny, _ = size(grid)
-    
-    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    sign  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
-    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
-    Hy = grid.Hy
-    
-    for j = 1 : Hy
-        @inbounds begin
-            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-        end
-    end
-
-    return nothing
-end
-
-@inline function my_fold_north_center_center!(i, k, grid, sign, c)
-    Nx, Ny, _ = size(grid)
-    
-    i′ = Nx - i + 1
-    Hy = grid.Hy
-    
-    for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
-    end
-
-    return nothing
-end
-
 @testset "Test distributed TripolarGrid simulations..." begin
     # Run the serial computation    
     grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 5))
