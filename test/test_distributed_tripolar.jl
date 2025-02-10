@@ -11,18 +11,28 @@ tripolar_boundary_conditions = """
     arch = Distributed(CPU(), partition = Partition(2, 2))
     grid = TripolarGrid(arch; size = (20, 20, 1), z = (-1000, 0))
 
-    u = XFaceField(grid)
-    v = YFaceField(grid)
+    # Build initial condition
+    serial_grid = TripolarGrid(size = (20, 20, 1), z = (-1000, 0))
+
+    vs =  YFaceField(serial_grid)
+    cs = CenterField(serial_grid)
+
+    I1 = [i + j * 100 for i in 1:20, j in 1:20]
+
+    set!(vs, I1)
+    set!(cs, I1)
+
+    fill_halo_regions!((vs, cs))
+
+    v =  YFaceField(grid)
     c = CenterField(grid)
 
-    set!(u, (x, y, z) -> y * x)
-    set!(v, (x, y, z) -> y * x)
-    set!(c, (x, y, z) -> y * x)
+    set!(v, vs)
+    set!(c, cs)
 
-    fill_halo_regions!((u, v, c))
+    fill_halo_regions!((v, c))
 
     jldopen("distributed_tripolar_boundary_conditions_" * string(arch.local_rank) * ".jld2", "w") do file
-        file["u"] = u.data
         file["v"] = v.data
         file["c"] = c.data
     end
@@ -32,37 +42,32 @@ tripolar_boundary_conditions = """
     # Run the serial computation    
     grid = TripolarGrid(size = (20, 20, 1), z = (-1000, 0))
 
-    u = XFaceField(grid)
+    I1 = [i + j * 100 for i in 1:20, j in 1:20]
+
     v = YFaceField(grid)
     c = CenterField(grid)
 
-    set!(u, (x, y, z) -> y * x)
-    set!(v, (x, y, z) -> y * x)
-    set!(c, (x, y, z) -> y * x)
+    set!(v, I1)
+    set!(c, I1)
 
-    fill_halo_regions!((u, v, c))
+    fill_halo_regions!((v, c))
     
     write("distributed_tests.jl", tripolar_boundary_conditions)
     mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities from rank 1 (the north-west rank)
-    up1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["u"];
     vp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["v"];
     cp1 = jldopen("distributed_tripolar_boundary_conditions_1.jld2")["c"];
 
     # Retrieve Parallel quantities from rank 3 (the north-east rank)
-    up3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["u"];
     vp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["v"];
     cp3 = jldopen("distributed_tripolar_boundary_conditions_3.jld2")["c"];
 
-    # @test u.data[-2:14, 7:end-1, 1] ≈ up1.parent[2:end, 1:end-1, 5]
-    @test v.data[-3:14, 7:end-1, 1] ≈ vp1.parent[:,     1:end-1, 5]
-    @test c.data[-3:14, 7:end-1, 1] ≈ cp1.parent[:,     1:end-1, 5]
-
-    # @test u.data[8:end, 7:end-1, 1] ≈ up3.parent[2:end, 1:end-1, 5]
-    @test v.data[7:end, 7:end-1, 1] ≈ vp3.parent[:,     1:end-1, 5]
-    @test c.data[7:end, 7:end-1, 1] ≈ cp3.parent[:,     1:end-1, 5]
+    @test v.data[-3:14, end-3:end-1, 1] ≈ vp1.parent[:, end-3:end-1, 5]
+    @test c.data[-3:14, end-3:end-1, 1] ≈ cp1.parent[:, end-3:end-1, 5]
+    @test v.data[7:end, 7:end-1, 1] ≈ vp3.parent[:, 1:end-1, 5]
+    @test c.data[7:end, 7:end-1, 1] ≈ cp3.parent[:, 1:end-1, 5]
 end
 
 run_slab_distributed_grid = """
@@ -79,7 +84,7 @@ run_pencil_distributed_grid = """
     MPI.Init()
 
     include("distributed_tests_utils.jl")
-    arch = Distributed(CPU(), partition = Partition(2, 2))
+    arch = Distributed(CPU(), partition = Partition(2, 2), synchronized_communication = true)
     run_distributed_tripolar_grid(arch, "distributed_pencil_tripolar.jld2")
 """
 
@@ -91,6 +96,47 @@ run_large_pencil_distributed_grid = """
     arch = Distributed(CPU(), partition = Partition(4, 2))
     run_distributed_tripolar_grid(arch, "distributed_large_pencil_tripolar.jld2")
 """
+
+# The serial version of the TripolarGrid substitutes the second half of the last row of the grid
+# This is not done in the distributed version, so we need to undo this substitution if we want to
+# compare the results. Otherwise very tiny differences caused by finite precision compuations
+# will appear in the last row of the grid.
+import OrthogonalSphericalShellGrids: _fill_north_halo!
+using OrthogonalSphericalShellGrids: ZBC, CCLocation, FCLocation
+
+# # tracers or similar fields
+@inline _fill_north_halo!(i, k, grid, c, bc::ZBC, ::CCLocation, args...) = my_fold_north_center_center!(i, k, grid, bc.condition, c)
+@inline _fill_north_halo!(i, k, grid, u, bc::ZBC, ::FCLocation, args...) = my_fold_north_face_center!(i, k, grid, bc.condition, u)
+
+@inline function my_fold_north_face_center!(i, k, grid, sign, c)
+    Nx, Ny, _ = size(grid)
+    
+    i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
+    sign  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
+    i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
+    Hy = grid.Hy
+    
+    for j = 1 : Hy
+        @inbounds begin
+            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+        end
+    end
+
+    return nothing
+end
+
+@inline function my_fold_north_center_center!(i, k, grid, sign, c)
+    Nx, Ny, _ = size(grid)
+    
+    i′ = Nx - i + 1
+    Hy = grid.Hy
+    
+    for j = 1 : Hy
+        @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+    end
+
+    return nothing
+end
 
 @testset "Test distributed TripolarGrid simulations..." begin
     # Run the serial computation    
@@ -106,7 +152,7 @@ run_large_pencil_distributed_grid = """
 
     # Run the distributed grid simulation with a slab configuration
     write("distributed_tests.jl", run_slab_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project -O0 distributed_tests.jl`))
+    run(`$(mpiexec()) -n 4 julia --project -O0 distributed_tests.jl`)
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
@@ -125,7 +171,7 @@ run_large_pencil_distributed_grid = """
 
     # Run the distributed grid simulation with a pencil configuration
     write("distributed_tests.jl", run_pencil_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project -O0 distributed_tests.jl`))
+    run(`$(mpiexec()) -n 4 julia --project -O0 distributed_tests.jl`)
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
@@ -145,7 +191,7 @@ run_large_pencil_distributed_grid = """
     # test as we are now splitting, not only where the singularities are, but
     # also in the middle of the north fold. This is a more challenging test
     write("distributed_tests.jl", run_large_pencil_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 8 julia --project -O0 distributed_tests.jl`))
+    run(`$(mpiexec()) -n 8 julia --project -O0 distributed_tests.jl`)
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
