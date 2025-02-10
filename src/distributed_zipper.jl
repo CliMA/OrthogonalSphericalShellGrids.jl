@@ -9,6 +9,8 @@ using Oceananigans.DistributedComputations: cooperative_waitall!,
                                             loc_id, 
                                             DCBCT
 
+using Oceananigans.Fields: location
+
 import Oceananigans.BoundaryConditions: fill_halo_regions!
 import Oceananigans.DistributedComputations: synchronize_communication!
 

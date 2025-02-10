@@ -94,7 +94,7 @@ run_large_pencil_distributed_grid = """
 
 @testset "Test distributed TripolarGrid simulations..." begin
     # Run the serial computation    
-    grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 4))
+    grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 5))
     grid = mask_singularities(grid)
 
     simulation = run_tripolar_simulation(grid)
@@ -110,16 +110,16 @@ run_large_pencil_distributed_grid = """
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
-    up = jldopen("distributed_slab_tripolar.jld2")["u"]
-    vp = jldopen("distributed_slab_tripolar.jld2")["v"]
-    ηp = jldopen("distributed_slab_tripolar.jld2")["η"]
-    cp = jldopen("distributed_slab_tripolar.jld2")["c"]
+    up = jldopen("distributed_yslab_tripolar.jld2")["u"]
+    vp = jldopen("distributed_yslab_tripolar.jld2")["v"]
+    ηp = jldopen("distributed_yslab_tripolar.jld2")["η"]
+    cp = jldopen("distributed_yslab_tripolar.jld2")["c"]
 
     # Test slab partitioning
-    @test interior(us, :, :, 1) ≈ up
-    @test interior(vs, :, :, 1) ≈ vp
-    @test interior(cs, :, :, 1) ≈ cp
-    @test interior(ηs, :, :, 1) ≈ ηp
+    @test all(interior(us, :, :, 1) .≈ up)
+    @test all(interior(vs, :, :, 1) .≈ vp)
+    @test all(interior(cs, :, :, 1) .≈ cp)
+    @test all(interior(ηs, :, :, 1) .≈ ηp)
 
     # Run the distributed grid simulation with a pencil configuration
     write("distributed_tests.jl", run_pencil_distributed_grid)
@@ -132,10 +132,10 @@ run_large_pencil_distributed_grid = """
     ηp = jldopen("distributed_pencil_tripolar.jld2")["η"]
     cp = jldopen("distributed_pencil_tripolar.jld2")["c"]
 
-    @test interior(us, :, :, 1) ≈ up
-    @test interior(vs, :, :, 1) ≈ vp
-    @test interior(cs, :, :, 1) ≈ cp
-    @test interior(ηs, :, :, 1) ≈ ηp
+    @test all(interior(us, :, :, 1) .≈ up)
+    @test all(interior(vs, :, :, 1) .≈ vp)
+    @test all(interior(cs, :, :, 1) .≈ cp)
+    @test all(interior(ηs, :, :, 1) .≈ ηp)
 
     # We try now with more ranks in the x-direction. This is not a trivial
     # test as we are now splitting, not only where the singularities are, but
@@ -150,8 +150,8 @@ run_large_pencil_distributed_grid = """
     ηp = jldopen("distributed_large_pencil_tripolar.jld2")["η"]
     cp = jldopen("distributed_large_pencil_tripolar.jld2")["c"]
 
-    @test interior(us, :, :, 1) ≈ up
-    @test interior(vs, :, :, 1) ≈ vp
-    @test interior(cs, :, :, 1) ≈ cp
-    @test interior(ηs, :, :, 1) ≈ ηp
+    @test all(interior(us, :, :, 1) .≈ up)
+    @test all(interior(vs, :, :, 1) .≈ vp)
+    @test all(interior(cs, :, :, 1) .≈ cp)
+    @test all(interior(ηs, :, :, 1) .≈ ηp)
 end

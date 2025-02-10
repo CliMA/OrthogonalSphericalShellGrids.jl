@@ -7,7 +7,7 @@ include("dependencies_for_runtests.jl")
 
 # Run the distributed grid simulation and save down reconstructed results
 function run_distributed_tripolar_grid(arch, filename)
-    distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 4))
+    distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 5))
     distributed_grid = mask_singularities(distributed_grid)
     simulation       = run_tripolar_simulation(distributed_grid)
 
@@ -20,12 +20,12 @@ function run_distributed_tripolar_grid(arch, filename)
     fill_halo_regions!(u)
     fill_halo_regions!(v)
     fill_halo_regions!(c)
-
+    
     if arch.local_rank == 0
-        jldsave(filename; η = interior(η, :, :, 1), 
-                          u = interior(u, :, :, 1),
-                          v = interior(v, :, :, 1), 
-                          c = interior(c, :, :, 1)) 
+        jldsave(filename; η = Array(interior(η, :, :, 1)), 
+                          u = Array(interior(u, :, :, 1)),
+                          v = Array(interior(v, :, :, 1)), 
+                          c = Array(interior(c, :, :, 1))) 
     end
 
     MPI.Barrier(MPI.COMM_WORLD)
@@ -42,7 +42,7 @@ function run_tripolar_simulation(grid)
                                           tracers = :c,
                                           buoyancy = nothing, 
                                           tracer_advection = WENO(),
-                                          momentum_advection = VectorInvariant(),
+                                          momentum_advection = WENOVectorInvariant(order=5),
                                           coriolis = HydrostaticSphericalCoriolis())
 
     # Setup the model with a gaussian sea surface height
