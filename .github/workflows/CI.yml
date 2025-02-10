@@ -19,11 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-<<<<<<< HEAD
-=======
-          - '1.10'
->>>>>>> origin/main
-          - '1.11'
+          - '1.10.8'
         os:
           - ubuntu-latest
         arch:

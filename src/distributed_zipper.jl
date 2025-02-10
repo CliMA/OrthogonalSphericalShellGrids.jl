@@ -60,7 +60,9 @@ end
     return nothing
 end
 
-function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; only_local_halos = false, fill_boundary_normal_velocities = true, kwargs...)
+function fill_halo_regions!(c::OffsetArray, bcs, indices, loc, grid::DTRG, buffers, args...; 
+                            only_local_halos=false, fill_boundary_normal_velocities=true, kwargs...)
+    
     if fill_boundary_normal_velocities
         fill_open_boundary_regions!(c, bcs, indices, loc, grid, args...; kwargs...)
     end
