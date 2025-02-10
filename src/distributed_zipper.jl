@@ -34,9 +34,6 @@ end
 @inline reversed_halos(::Tuple{<:Any, <:Center, <:Any}, Ny, Hy) = Ny+2Hy-1:-1:Ny+Hy+1
 @inline reversed_halos(::Tuple{<:Any, <:Face,   <:Any}, Ny, Hy) = Ny+2Hy:-1:Ny+Hy+2
 
-@inline west_corner_halos(::Tuple{<:Face,   <:Any, <:Any}, Hx) = 1:Hx 
-@inline west_corner_halos(::Tuple{<:Center, <:Any, <:Any}, Hx) = 1:Hx
-
 @inline adjust_x_face!(c, loc, north_halos, Px) = nothing
 @inline adjust_x_face!(c, ::Tuple{<:Face, <:Any, <:Any}, north_halos, Px) = view(c, 2:Px, north_halos, :) .= view(c, 1:Px-1, north_halos, :)
 
@@ -45,12 +42,12 @@ end
     
     # Domain indices common for all locations
     north_halos = Ny+Hy+1:Ny+2Hy-1
+    west_corner = 1:Hx
     east_corner = Nx+Hx+1:Nx+2Hx
     interior    = Hx+1:Nx+Hx
 
     # Location - dependent halo indices 
     reversed_north_halos = reversed_halos(loc, Ny, Hy)
-    west_corner = west_corner_halos(loc, Hx)
     
     view(c, west_corner, north_halos, :) .= sign .* reverse(view(c, west_corner, reversed_north_halos, :), dims = 1) 
     view(c, east_corner, north_halos, :) .= sign .* reverse(view(c, east_corner, reversed_north_halos, :), dims = 1) 
