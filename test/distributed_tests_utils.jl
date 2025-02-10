@@ -42,7 +42,7 @@ function run_tripolar_simulation(grid)
                                           tracers = :c,
                                           buoyancy = nothing, 
                                           tracer_advection = WENO(),
-                                          momentum_advection = WENOVectorInvariant(order=5),
+                                          momentum_advection = VectorInvariant(),
                                           coriolis = HydrostaticSphericalCoriolis())
 
     # Setup the model with a gaussian sea surface height

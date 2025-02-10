@@ -115,6 +115,8 @@ run_large_pencil_distributed_grid = """
     ηp = jldopen("distributed_yslab_tripolar.jld2")["η"]
     cp = jldopen("distributed_yslab_tripolar.jld2")["c"]
 
+    rm("distributed_yslab_tripolar.jld2")
+
     # Test slab partitioning
     @test all(interior(us, :, :, 1) .≈ up)
     @test all(interior(vs, :, :, 1) .≈ vp)
@@ -132,6 +134,8 @@ run_large_pencil_distributed_grid = """
     ηp = jldopen("distributed_pencil_tripolar.jld2")["η"]
     cp = jldopen("distributed_pencil_tripolar.jld2")["c"]
 
+    rm("distributed_pencil_tripolar.jld2")
+    
     @test all(interior(us, :, :, 1) .≈ up)
     @test all(interior(vs, :, :, 1) .≈ vp)
     @test all(interior(cs, :, :, 1) .≈ cp)
@@ -149,6 +153,8 @@ run_large_pencil_distributed_grid = """
     vp = jldopen("distributed_large_pencil_tripolar.jld2")["v"]
     ηp = jldopen("distributed_large_pencil_tripolar.jld2")["η"]
     cp = jldopen("distributed_large_pencil_tripolar.jld2")["c"]
+
+    rm("distributed_large_pencil_tripolar.jld2")
 
     @test all(interior(us, :, :, 1) .≈ up)
     @test all(interior(vs, :, :, 1) .≈ vp)
