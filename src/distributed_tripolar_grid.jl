@@ -8,7 +8,7 @@ using Oceananigans.DistributedComputations: local_size,
                                             inject_halo_communication_boundary_conditions,
                                             concatenate_local_sizes
 
-using Oceananigans.Grids: topology
+using Oceananigans.Grids: topology, RightConnected, FullyConnected
 
 import Oceananigans.DistributedComputations: reconstruct_global_grid
 
@@ -59,7 +59,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     # Extracting the local range
     nylocal = concatenate_local_sizes(lsize, arch, 2)
     nxlocal = concatenate_local_sizes(lsize, arch, 1)
-    yrank   = ifelse(isnothing(arch.partition.x), 0, arch.local_index[2] - 1)
+    yrank   = ifelse(isnothing(arch.partition.y), 0, arch.local_index[2] - 1)
     xrank   = ifelse(isnothing(arch.partition.x), 0, arch.local_index[1] - 1)
     
     # The j-range
@@ -101,7 +101,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     ny = nylocal[yrank+1]
     nx = nxlocal[xrank+1]
 
-    z = global_grid.z
+    z = on_architecture(arch, global_grid.z)
     radius = global_grid.radius
 
     # Fix corners halos passing in case workers[1] != 1 
@@ -150,8 +150,6 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
                                                          on_architecture(arch, Δyᶜᶠᵃ),
                                                          on_architecture(arch, Δyᶠᶜᵃ),
                                                          on_architecture(arch, Δyᶠᶠᵃ),
-                                                         on_architecture(arch, Δzᵃᵃᶜ),
-                                                         on_architecture(arch, Δzᵃᵃᶠ),
                                                          on_architecture(arch, Azᶜᶜᵃ),
                                                          on_architecture(arch, Azᶠᶜᵃ),
                                                          on_architecture(arch, Azᶜᶠᵃ),
@@ -335,6 +333,6 @@ function reconstruct_global_grid(grid::DistributedTripolarGrid)
                         size,
                         north_poles_latitude,
                         first_pole_longitude,
-                        southermost_latitude,
+                        southernmost_latitude,
                         z)
 end

@@ -88,7 +88,7 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
     topology  = (Periodic, RightConnected, Bounded) 
 
     Lx, λᶠᵃᵃ, λᶜᵃᵃ, Δλᶠᵃᵃ, Δλᶜᵃᵃ = generate_coordinate(FT, topology, size, halo, longitude, :longitude, 1, CPU())
-    Lz, z                        = generate_coordinate(FT, topology, size, halo, z,         :z,         3, CPU())
+    Lz, z                        = generate_coordinate(FT, topology, size, halo, z,         :z,         3, arch)
 
     # The φ coordinate is a bit more complicated because the center points start from
     # southernmost_latitude and end at 90ᵒ N.
@@ -138,7 +138,6 @@ function TripolarGrid(arch = CPU(), FT::DataType = Float64;
                              halo = (Hλ, Hφ),
                              x = (0, 1), y = (0, 1),
                              topology = (Periodic, RightConnected, Flat))
-    z_faces = cpu_face_constructor_z(grid)
 
     # Boundary conditions to fill halos of the coordinate and metric terms
     # We need to define them manually because of the convention in the 

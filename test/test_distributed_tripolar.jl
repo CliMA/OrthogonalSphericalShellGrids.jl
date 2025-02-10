@@ -94,7 +94,7 @@ run_large_pencil_distributed_grid = """
 
 @testset "Test distributed TripolarGrid simulations..." begin
     # Run the serial computation    
-    grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0))
+    grid = TripolarGrid(size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 4))
     grid = mask_singularities(grid)
 
     simulation = run_tripolar_simulation(grid)
@@ -106,7 +106,7 @@ run_large_pencil_distributed_grid = """
 
     # Run the distributed grid simulation with a slab configuration
     write("distributed_tests.jl", run_slab_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project -O0 distributed_tests.jl`))
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
@@ -123,7 +123,7 @@ run_large_pencil_distributed_grid = """
 
     # Run the distributed grid simulation with a pencil configuration
     write("distributed_tests.jl", run_pencil_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 4 julia --project distributed_tests.jl`))
+    mpiexec(cmd -> run(`$cmd -n 4 julia --project -O0 distributed_tests.jl`))
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities
@@ -141,7 +141,7 @@ run_large_pencil_distributed_grid = """
     # test as we are now splitting, not only where the singularities are, but
     # also in the middle of the north fold. This is a more challenging test
     write("distributed_tests.jl", run_large_pencil_distributed_grid)
-    mpiexec(cmd -> run(`$cmd -n 8 julia --project distributed_tests.jl`))
+    mpiexec(cmd -> run(`$cmd -n 8 julia --project -O0 distributed_tests.jl`))
     rm("distributed_tests.jl")
 
     # Retrieve Parallel quantities

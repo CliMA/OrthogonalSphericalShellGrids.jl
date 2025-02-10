@@ -1,12 +1,13 @@
 using JLD2
 using MPI
 using Oceananigans.DistributedComputations: reconstruct_global_field
+using Oceananigans.Units
 
 include("dependencies_for_runtests.jl")
 
 # Run the distributed grid simulation and save down reconstructed results
 function run_distributed_tripolar_grid(arch, filename)
-    distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 5))
+    distributed_grid = TripolarGrid(arch; size = (100, 100, 1), z = (-1000, 0), halo = (5, 5, 4))
     distributed_grid = mask_singularities(distributed_grid)
     simulation       = run_tripolar_simulation(distributed_grid)
 
@@ -41,7 +42,7 @@ function run_tripolar_simulation(grid)
                                           tracers = :c,
                                           buoyancy = nothing, 
                                           tracer_advection = WENO(),
-                                          momentum_advection = WENOVectorInvariant(),
+                                          momentum_advection = VectorInvariant(),
                                           coriolis = HydrostaticSphericalCoriolis())
 
     # Setup the model with a gaussian sea surface height
