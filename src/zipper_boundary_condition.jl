@@ -45,7 +45,9 @@ and
 c₂ == c₃
 ```
 
-This is not the case for the v-velocity (or any field on the j-faces) where the last grid point is not repeated.
+This is not the case for the ``v``-velocity (or any field on the `j`-faces), where
+the last grid point is not repeated. Because of this redundancy, we ensure consistency
+by substituting the redundant part of fields Centered in ``x``, in the last row.
 """
 ZipperBoundaryCondition(sign = 1) = BoundaryCondition(Zipper(), sign)
 
@@ -69,12 +71,14 @@ validate_boundary_condition_location(bc::Zipper, loc::Face, side) =
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
+    sign = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
     i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = s * c[i′, Ny - j + 1, k] 
+        @inbounds begin
+            c[i, Ny + j, k] = sign * c[i′, Ny - j + 1, k] 
+        end
     end
 
     return nothing
@@ -84,13 +88,18 @@ end
     Nx, Ny, _ = size(grid)
     
     i′ = Nx - i + 2 # Remember! element Nx + 1 does not exist!
-    s  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
+    sign  = ifelse(i′ > Nx , abs(sign), sign) # for periodic elements we change the sign
     i′ = ifelse(i′ > Nx, i′ - Nx, i′) # Periodicity is hardcoded in the x-direction!!
     Hy = grid.Hy
     
     for j = 1 : Hy
-        @inbounds c[i, Ny + j, k] = s * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+        @inbounds begin
+            c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
+        end
     end
+
+    # We substitute the redundant part of the last row to ensure consistency
+    @inbounds c[i, Ny, k] = ifelse(i > Nx ÷ 2, sign * c[i′, Ny, k], c[i, Ny, k])
 
     return nothing
 end
@@ -117,6 +126,9 @@ end
     for j = 1 : Hy
         @inbounds c[i, Ny + j, k] = sign * c[i′, Ny - j, k] # The Ny line is duplicated so we substitute starting Ny-1
     end
+
+    # We substitute the redundant part of the last row to ensure consistency
+    @inbounds c[i, Ny, k] = ifelse(i > Nx ÷ 2, sign * c[i′, Ny, k], c[i, Ny, k])
 
     return nothing
 end

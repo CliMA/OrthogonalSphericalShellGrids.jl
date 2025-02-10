@@ -12,8 +12,8 @@ using Oceananigans.Grids: topology
 
 import Oceananigans.DistributedComputations: reconstruct_global_grid
 
-const DistributedTripolarGrid{FT, TX, TY, TZ, A, R, FR, Arch} =
-    OrthogonalSphericalShellGrid{FT, TX, TY, TZ, A, R, FR, <:Tripolar, <:Distributed}
+const DistributedTripolarGrid{FT, TX, TY, TZ, CZ, A, Arch} =
+    OrthogonalSphericalShellGrid{FT, TX, TY, TZ, CZ, A, <:Tripolar, <:Distributed}
 
 const DTRG = Union{DistributedTripolarGrid, ImmersedBoundaryGrid{<:Any, <:Any, <:Any, <:Any, <:DistributedTripolarGrid}}
 
@@ -101,10 +101,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
     ny = nylocal[yrank+1]
     nx = nxlocal[xrank+1]
 
-    zᵃᵃᶜ   = global_grid.zᵃᵃᶜ
-    zᵃᵃᶠ   = global_grid.zᵃᵃᶠ
-    Δzᵃᵃᶜ  = global_grid.Δzᵃᵃᶜ
-    Δzᵃᵃᶠ  = global_grid.Δzᵃᵃᶠ
+    z = global_grid.z
     radius = global_grid.radius
 
     # Fix corners halos passing in case workers[1] != 1 
@@ -144,8 +141,7 @@ function TripolarGrid(arch::Distributed, FT::DataType=Float64;
                                                          on_architecture(arch, φᶠᶜᵃ),
                                                          on_architecture(arch, φᶜᶠᵃ),
                                                          on_architecture(arch, φᶠᶠᵃ),
-                                                         on_architecture(arch, zᵃᵃᶜ),
-                                                         on_architecture(arch, zᵃᵃᶠ),
+                                                         on_architecture(arch, z),
                                                          on_architecture(arch, Δxᶜᶜᵃ),
                                                          on_architecture(arch, Δxᶠᶜᵃ),
                                                          on_architecture(arch, Δxᶜᶠᵃ),
