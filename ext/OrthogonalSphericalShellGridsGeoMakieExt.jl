@@ -54,7 +54,7 @@ function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(
     if isnothing(colorrange)
         p = poly!(ax, polygons, color=data; colormap)
     else
-        p = poly!(ax, polygons, color=data; colormap=map, colorrange=range)
+        p = poly!(ax, polygons, color=data; colormap, colorrange)
     end
     p.transformation.transform_func[] = transf
 
