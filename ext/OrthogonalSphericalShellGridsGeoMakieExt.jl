@@ -8,7 +8,7 @@ using GeoMakie: GeometryBasics
 
 using KernelAbstractions: @kernel, @index
 
-function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, colorrange=nothing)
+function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, colorrange=nothing, nan_color=:white)
     fig = Figure(size=(800, 800));
 
     ax = LScene(fig[1,1], show_axis=false);
@@ -18,9 +18,9 @@ function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, c
 
     polygons = [GeometryBasics.Polygon(faces[:, j]) for j in 1:length(data[])]
     if isnothing(colorrange)
-        p = poly!(ax, polygons, color=data; colormap)
+        p = poly!(ax, polygons, color=data; colormap, nan_color)
     else
-        p = poly!(ax, polygons, color=data; colormap, colorrange)
+        p = poly!(ax, polygons, color=data; colormap, colorrange, nan_color)
     end
     p.transformation.transform_func[] = transf
 
@@ -40,7 +40,7 @@ function globe(data::Observable, grid; add_coastlines=true, colormap=:viridis, c
     return fig, ax
 end
 
-function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(field, 3), colorrange=nothing)
+function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(field, 3), colorrange=nothing, nan_color=:white)
     fig = Figure(size=(800, 800));
 
     ax = LScene(fig[1,1], show_axis=false);
@@ -52,9 +52,9 @@ function globe(field::Field; add_coastlines=true, colormap=:viridis, level=size(
 
     polygons = [GeometryBasics.Polygon(faces[:, j]) for j in 1:length(data)]
     if isnothing(colorrange)
-        p = poly!(ax, polygons, color=data; colormap)
+        p = poly!(ax, polygons, color=data; colormap, nan_color)
     else
-        p = poly!(ax, polygons, color=data; colormap, colorrange)
+        p = poly!(ax, polygons, color=data; colormap, colorrange, nan_color)
     end
     p.transformation.transform_func[] = transf
 
